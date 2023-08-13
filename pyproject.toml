@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "TSChannelScanner"
+version = "1.0.0"
+description = ""
+authors = ["tsukumi <tsukumijima@users.noreply.github.com"]
+license = "MIT"
+readme = "Readme.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+ariblib = {url = "https://github.com/tsukumijima/ariblib/releases/download/v0.1.0/ariblib-0.1.0-py3-none-any.whl"}
+typer = {extras = ["all"], version = "^0.9.0"}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
