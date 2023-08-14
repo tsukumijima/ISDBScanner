@@ -96,10 +96,9 @@ class TransportStreamAnalyzer(TransportStreamFile):
                     ts_info.physical_channel = f'BS{ts_info.satellite_transponder:02d}/TS{ts_info.satellite_slot}'
                 # CS110 の TSID は、ARIB TR-B15 第四分冊 第二部 第七編 8.1.1 によると
                 # (network_idの下位4ビット:4bit)(予約:3bit)(トランスポンダ番号:5bit)(予約:1bit)(スロット番号:3bit) の 16bit で構成されている
-                # ここからビット演算でトランスポンダ番号とスロット番号を取得する
+                # ここからビット演算でトランスポンダ番号を取得する (スロット番号は常に 0 なので取得しない)
                 elif ts_info.network_id == 6 or ts_info.network_id == 7:
                     ts_info.satellite_transponder = (transport_stream.transport_stream_id >> 4) & 0b11111
-                    ts_info.satellite_slot = transport_stream.transport_stream_id & 0b111  # 実運用上常に 0 になる
                     ts_info.physical_channel = f'CS{ts_info.satellite_transponder:02d}'
                 if ts_info.network_id >= 0x7880 and ts_info.network_id <= 0x7FE8:
                     # TS 情報記述子 (地上波のみ)
