@@ -17,9 +17,6 @@ from TSChannelScanner.constants import (
 class ISDBTuner:
     """ ISDB-T/S チューナーデバイスを操作するクラス (recisdb のラッパー) """
 
-    # チューナーの受信タイムアウト (秒)
-    TUNE_TIMEOUT = 10.0
-
     # 検出可能とする信号レベル (dB)
     ## TVTest のデフォルト値と同一
     SIGNAL_LEVEL_THRESHOLD = 7.0
@@ -27,7 +24,7 @@ class ISDBTuner:
 
     def __init__(self, device_path: Path, output_recisdb_log: bool = False) -> None:
         """
-        ISDB-T/S チューナーデバイスを操作するクラスを初期化する
+        ISDBTuner を初期化する
 
         Args:
             device_path (Path): デバイスファイルのパス
@@ -38,13 +35,14 @@ class ISDBTuner:
         self.output_recisdb_log = output_recisdb_log
 
 
-    def tune(self, physical_channel: str) -> bytearray:
+    def tune(self, physical_channel: str, tune_time: float = 10.0) -> bytearray:
         """
         チューナーデバイスから指定された物理チャンネルを受信する
         選局/受信できなかった場合は例外を送出する
 
         Args:
             physical_channel (str): 物理チャンネル (ex: "T13" / "BS23_3", "CS04")
+            tune_time (float, optional): 受信時間 (秒). Defaults to 10.0.
 
         Returns:
             bytearray: 受信したデータ
@@ -88,10 +86,10 @@ class ISDBTuner:
         stderr_thread = threading.Thread(target=stderr_thread_func)
 
         # スレッドを開始し、タイムアウト秒数に達するまで待機
-        # 10秒経過後にプロセスに SIGINT を送る必要があるので、標準出力のみ join する
+        # タイムアウト秒数経過後にプロセスに SIGINT を送る必要があるので、標準出力のみ join する
         stdout_thread.start()
         stderr_thread.start()
-        stdout_thread.join(timeout=self.TUNE_TIMEOUT)
+        stdout_thread.join(timeout=tune_time)
 
         # 最大でもタイムアウト秒数に達しているはずなので、プロセスを終了 (Ctrl+C を送信)
         process.send_signal(signal.SIGINT)
@@ -121,7 +119,7 @@ class ISDBTuner:
             # それ以外は選局/受信時のエラーと判断
             raise TunerTuningError(error_message)
 
-        # 10秒も受信していれば（チューナーオープン時間を含めても）100KB 以上のデータが得られるはず
+        # 受信していれば（チューナーオープン時間を含めても）100KB 以上のデータが得られるはず
         # それ未満の場合は選局に失敗している
         if len(stdout) < 100 * 1024:
             raise TunerOutputError('The tuner output is too small.')
