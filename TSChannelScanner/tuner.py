@@ -1,6 +1,9 @@
 
 import re
+import signal
 import subprocess
+import sys
+import threading
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -15,7 +18,7 @@ class ISDBTuner:
     """ ISDB-T/S チューナーデバイスを操作するクラス (recisdb のラッパー) """
 
     # チューナーの受信タイムアウト (秒)
-    TUNE_TIMEOUT = 5
+    TUNE_TIMEOUT = 10.0
 
     # 検出可能とする信号レベル (dB)
     ## TVTest のデフォルト値と同一
@@ -35,41 +38,93 @@ class ISDBTuner:
         self.output_recisdb_log = output_recisdb_log
 
 
-    def tune(self, physical_channel: str) -> bytes | None:
+    def tune(self, physical_channel: str) -> bytearray:
         """
         チューナーデバイスから指定された物理チャンネルを受信する
-        選局/受信できなかった場合は None を返す
+        選局/受信できなかった場合は例外を送出する
 
         Args:
             physical_channel (str): 物理チャンネル (ex: "T13" / "BS23_3", "CS04")
 
         Returns:
-            bytes | None: 受信したデータ (失敗時は None)
+            bytearray: 受信したデータ
+
+        Raises:
+            TunerOpeningError: チューナーをオープンできなかった場合
+            TunerTuningError: チャンネルを選局できなかった場合
+            TunerOutputError: 受信したデータが小さすぎる場合
         """
 
         # recisdb (チューナープロセス) を起動
         process = subprocess.Popen(
             ['recisdb', 'tune', '--device', str(self.device_path), '--channel', physical_channel, '-'],
             stdout = subprocess.PIPE,
-            stderr = subprocess.PIPE if self.output_recisdb_log else None,
+            stderr = subprocess.PIPE,
         )
 
-        # タイムアウト秒数に達するまで受信し続ける
-        try:
-            stdout, _ = process.communicate(timeout=self.TUNE_TIMEOUT)
-        except subprocess.TimeoutExpired:
-            # タイムアウトに達したらプロセスを終了し、stdout と stderr を取得
-            process.terminate()
-            stdout, _ = process.communicate()
+        # 標準出力と標準エラー出力を別スレッドで読み込む
+        stdout: bytearray = bytearray()
+        def stdout_thread_func():
+            nonlocal stdout
+            assert process.stdout is not None
+            while True:
+                data = process.stdout.read(188)
+                if len(data) == 0:
+                    break
+                stdout.extend(data)
+        stderr: bytes = b''
+        def stderr_thread_func():
+            nonlocal stderr
+            assert process.stderr is not None
+            while True:
+                data = process.stderr.read(1)
+                if len(data) == 0:
+                    break
+                stderr += data
+                if self.output_recisdb_log is True:
+                    sys.stderr.buffer.write(data)
+                    sys.stderr.buffer.flush()
+        stdout_thread = threading.Thread(target=stdout_thread_func)
+        stderr_thread = threading.Thread(target=stderr_thread_func)
+
+        # スレッドを開始し、タイムアウト秒数に達するまで待機
+        # 10秒経過後にプロセスに SIGINT を送る必要があるので、標準出力のみ join する
+        stdout_thread.start()
+        stderr_thread.start()
+        stdout_thread.join(timeout=self.TUNE_TIMEOUT)
+
+        # 最大でもタイムアウト秒数に達しているはずなので、プロセスを終了 (Ctrl+C を送信)
+        process.send_signal(signal.SIGINT)
+
+        # プロセスと標準エラー出力スレッドの終了を待機
+        process.wait()
+        stderr_thread.join()
 
         # この時点でリターンコードが 0 でなければ選局または受信に失敗している
         if process.returncode != 0:
-            return None
 
-        # 5秒も受信していれば（チューナーオープン時間を含めても）100KB 以上のデータが得られるはず
+            # エラメッセージを正規表現で取得
+            result = re.search(r'ERROR:\s+(.+)', stderr.decode('utf-8'))
+            if result is not None:
+                error_message = result.group(1)
+            else:
+                error_message = 'Unknown error'
+
+            # チューナーオープン時のエラー
+            if error_message in [
+                'The tuner device does not exist.',
+                'The tuner device is already in use.',
+                'he tuner device is busy.',
+            ] or error_message.startswith('Cannot open the device.'):
+                raise TunerOpeningError(error_message)
+
+            # それ以外は選局/受信時のエラーと判断
+            raise TunerTuningError(error_message)
+
+        # 10秒も受信していれば（チューナーオープン時間を含めても）100KB 以上のデータが得られるはず
         # それ未満の場合は選局に失敗している
         if len(stdout) < 100 * 1024:
-            return None
+            raise TunerOutputError('The tuner output is too small.')
 
         # 受信したデータを返す
         return stdout
@@ -91,7 +146,7 @@ class ISDBTuner:
         process = subprocess.Popen(
             ['recisdb', 'checksignal', '--device', str(self.device_path), '--channel', physical_channel],
             stdout = subprocess.PIPE,
-            stderr = subprocess.PIPE if self.output_recisdb_log else None,
+            stderr = None if self.output_recisdb_log is True else subprocess.DEVNULL,
         )
 
         # 標準出力に一行ずつ受信感度が "30.00dB" のように出力されるので、随時パースしてイテレータで返す
@@ -102,7 +157,8 @@ class ISDBTuner:
 
                 # プロセスが終了していたら終了
                 if line == b'' or process.poll() is not None:
-                    process.terminate()
+                    process.send_signal(signal.SIGINT)
+                    process.wait()
                     break
 
                 # 信号レベルをパースして随時返す
@@ -136,26 +192,28 @@ class ISDBTuner:
             return None
 
         # プロセスを終了
-        process.terminate()
+        process.send_signal(signal.SIGINT)
+        process.wait()
 
         # 平均信号レベルを返す
         return sum(signal_levels) / len(signal_levels)
 
 
     @staticmethod
-    def getAvailableISDBTTunerDevices() -> list[str]:
+    def getAvailableISDBTTunerDevices() -> list[Path]:
         """
         利用可能な ISDB-T チューナーデバイスのパスのリストを取得する
         ISDB-T 専用チューナーと ISDB-T/S 共用チューナーの両方が含まれる
 
         Returns:
-            list[str]: 利用可能な ISDB-T チューナーデバイスのパスのリスト
+            list[Path]: 利用可能な ISDB-T チューナーデバイスのパスのリスト
         """
 
         # デバイスファイルが存在するパスのリストを取得
-        device_paths: list[str] = []
+        device_paths: list[Path] = []
         for device_path in [*ISDBT_TUNER_DEVICE_PATHS, *ISDB_MULTI_TUNER_DEVICE_PATHS]:
-            if not Path(device_path).exists():
+            device_path = Path(device_path)
+            if not device_path.exists():
                 continue
             device_paths.append(device_path)
 
@@ -163,20 +221,36 @@ class ISDBTuner:
 
 
     @staticmethod
-    def getAvailableISDBSTunerDevices() -> list[str]:
+    def getAvailableISDBSTunerDevices() -> list[Path]:
         """
         利用可能な ISDB-S チューナーデバイスのパスのリストを取得する
         ISDB-S 専用チューナーと ISDB-T/S 共用チューナーの両方が含まれる
 
         Returns:
-            list[str]: 利用可能な ISDB-S チューナーデバイスのパスのリスト
+            list[Path]: 利用可能な ISDB-S チューナーデバイスのパスのリスト
         """
 
         # デバイスファイルが存在するパスのリストを取得
-        device_paths: list[str] = []
+        device_paths: list[Path] = []
         for device_path in [*ISDBS_TUNER_DEVICE_PATHS, *ISDB_MULTI_TUNER_DEVICE_PATHS]:
-            if not Path(device_path).exists():
+            device_path = Path(device_path)
+            if not device_path.exists():
                 continue
             device_paths.append(device_path)
 
         return device_paths
+
+
+class TunerOpeningError(Exception):
+    """ チューナーのオープンに失敗したことを表す例外 """
+    pass
+
+
+class TunerTuningError(Exception):
+    """ チューナーの選局に失敗したことを表す例外 """
+    pass
+
+
+class TunerOutputError(Exception):
+    """ チューナーから出力されたデータが不正なことを表す例外 """
+    pass
