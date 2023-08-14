@@ -4,9 +4,15 @@ import subprocess
 from collections.abc import Iterator
 from pathlib import Path
 
+from TSChannelScanner.constants import (
+    ISDBT_TUNER_DEVICE_PATHS,
+    ISDBS_TUNER_DEVICE_PATHS,
+    ISDB_MULTI_TUNER_DEVICE_PATHS,
+)
+
 
 class ISDBTuner:
-    """ ISDB-T/S チューナーを操作するクラス (recisdb のラッパー) """
+    """ ISDB-T/S チューナーデバイスを操作するクラス (recisdb のラッパー) """
 
     # チューナーの受信タイムアウト (秒)
     TUNE_TIMEOUT = 5
@@ -16,24 +22,25 @@ class ISDBTuner:
     SIGNAL_LEVEL_THRESHOLD = 7.0
 
 
-    def __init__(self, output_recisdb_log: bool = False) -> None:
+    def __init__(self, device_path: Path, output_recisdb_log: bool = False) -> None:
         """
-        ISDB-T/S チューナーを操作するクラスを初期化する
+        ISDB-T/S チューナーデバイスを操作するクラスを初期化する
 
         Args:
+            device_path (Path): デバイスファイルのパス
             output_recisdb_log (bool, optional): recisdb のログを出力するかどうか. Defaults to False.
         """
 
+        self.device_path = device_path
         self.output_recisdb_log = output_recisdb_log
 
 
-    def tune(self, device_path: Path, physical_channel: str) -> bytes | None:
+    def tune(self, physical_channel: str) -> bytes | None:
         """
         チューナーデバイスから指定された物理チャンネルを受信する
         選局/受信できなかった場合は None を返す
 
         Args:
-            device_path (Path): デバイスファイルのパス
             physical_channel (str): 物理チャンネル (ex: "T13" / "BS23_3", "CS04")
 
         Returns:
@@ -42,7 +49,7 @@ class ISDBTuner:
 
         # recisdb (チューナープロセス) を起動
         process = subprocess.Popen(
-            ['recisdb', 'tune', '--device', str(device_path), '--channel', physical_channel, '-'],
+            ['recisdb', 'tune', '--device', str(self.device_path), '--channel', physical_channel, '-'],
             stdout = subprocess.PIPE,
             stderr = subprocess.PIPE if self.output_recisdb_log else None,
         )
@@ -68,13 +75,12 @@ class ISDBTuner:
         return stdout
 
 
-    def checkSignal(self, device_path: Path, physical_channel: str) -> tuple[subprocess.Popen[bytes], Iterator[float]]:
+    def checkSignal(self, physical_channel: str) -> tuple[subprocess.Popen[bytes], Iterator[float]]:
         """
         チューナーデバイスから指定された物理チャンネルを受信し、イテレータで信号レベルを返す
         この関数はイテレータを呼び終わってもプロセスを終了しないので、呼び出し側で明示的にプロセスを終了する必要がある
 
         Args:
-            device_path (Path): デバイスファイルのパス
             physical_channel (str): 物理チャンネル (ex: "T13" / "BS23_3", "CS04")
 
         Returns:
@@ -83,7 +89,7 @@ class ISDBTuner:
 
         # recisdb (チューナープロセス) を起動
         process = subprocess.Popen(
-            ['recisdb', 'checksignal', '--device', str(device_path), '--channel', physical_channel],
+            ['recisdb', 'checksignal', '--device', str(self.device_path), '--channel', physical_channel],
             stdout = subprocess.PIPE,
             stderr = subprocess.PIPE if self.output_recisdb_log else None,
         )
@@ -108,12 +114,11 @@ class ISDBTuner:
         return process, iterator()
 
 
-    def checkSignalMean(self, device_path: Path, physical_channel: str) -> float | None:
+    def checkSignalMean(self, physical_channel: str) -> float | None:
         """
         チューナーデバイスから指定された物理チャンネルを受信し、5回の平均信号レベルを返す
 
         Args:
-            device_path (Path): デバイスファイルのパス
             physical_channel (str): 物理チャンネル (ex: "T13" / "BS23_3", "CS04")
 
         Returns:
@@ -121,7 +126,7 @@ class ISDBTuner:
         """
 
         # 信号レベルを取得するイテレータを取得
-        process, iterator = self.checkSignal(device_path, physical_channel)
+        process, iterator = self.checkSignal(physical_channel)
 
         # 5回分の信号レベルを取得
         # もし信号レベルの取得中にプロセスが終了した場合は選局に失敗しているので None を返す
@@ -135,3 +140,43 @@ class ISDBTuner:
 
         # 平均信号レベルを返す
         return sum(signal_levels) / len(signal_levels)
+
+
+    @staticmethod
+    def getAvailableISDBTTunerDevices() -> list[str]:
+        """
+        利用可能な ISDB-T チューナーデバイスのパスのリストを取得する
+        ISDB-T 専用チューナーと ISDB-T/S 共用チューナーの両方が含まれる
+
+        Returns:
+            list[str]: 利用可能な ISDB-T チューナーデバイスのパスのリスト
+        """
+
+        # デバイスファイルが存在するパスのリストを取得
+        device_paths: list[str] = []
+        for device_path in [*ISDBT_TUNER_DEVICE_PATHS, *ISDB_MULTI_TUNER_DEVICE_PATHS]:
+            if not Path(device_path).exists():
+                continue
+            device_paths.append(device_path)
+
+        return device_paths
+
+
+    @staticmethod
+    def getAvailableISDBSTunerDevices() -> list[str]:
+        """
+        利用可能な ISDB-S チューナーデバイスのパスのリストを取得する
+        ISDB-S 専用チューナーと ISDB-T/S 共用チューナーの両方が含まれる
+
+        Returns:
+            list[str]: 利用可能な ISDB-S チューナーデバイスのパスのリスト
+        """
+
+        # デバイスファイルが存在するパスのリストを取得
+        device_paths: list[str] = []
+        for device_path in [*ISDBS_TUNER_DEVICE_PATHS, *ISDB_MULTI_TUNER_DEVICE_PATHS]:
+            if not Path(device_path).exists():
+                continue
+            device_paths.append(device_path)
+
+        return device_paths
