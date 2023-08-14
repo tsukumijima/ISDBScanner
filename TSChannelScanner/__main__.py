@@ -13,11 +13,11 @@ from TSChannelScanner.tuner import (
 def main():
 
     # 地上波のチャンネルスキャン
-    isdbt_devices = ISDBTuner.getAvailableISDBTTunerDevices()
+    isdbt_devices = ISDBTuner.getAvailableISDBSTunerDevices()
     isdbt_tuner = ISDBTuner(isdbt_devices[3], output_recisdb_log=True)
 
     try:
-        result = isdbt_tuner.tune('T16', tune_time=15)
+        result = isdbt_tuner.tune('CS04', tune_time=15)
     except TunerOpeningError as ex:
         print(f'チューナーのオープンに失敗しました。({ex})')
         return

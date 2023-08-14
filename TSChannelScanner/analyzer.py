@@ -11,9 +11,8 @@ from typing import Any
 
 class TransportStreamInfo(BaseModel):
     physical_channel: str = ''
-    physical_channel_number: int = -1
-    physical_channel_slot: int | None = None
-    frequency: int = -1
+    satellite_transponder: int | None = None
+    satellite_slot: int | None = None
     transport_stream_id: int = -1
     network_id: int = -1
     network_name: str = ''
@@ -64,6 +63,7 @@ class TransportStreamAnalyzer(TransportStreamFile):
     def analyze(self) -> list[TransportStreamInfo]:
         """
         トランスポートストリームとサービスの情報を解析する
+        ref: https://codepen.io/ppsrbn/pen/KKZPapG
 
         Returns:
             list[TransportStreamInfo]: トランスポートストリームとサービスの情報
@@ -87,10 +87,24 @@ class TransportStreamAnalyzer(TransportStreamFile):
                     ts_info.transport_stream_id = transport_stream.transport_stream_id
                     ts_info_list[ts_info.transport_stream_id] = ts_info
                 ts_info.network_id = nit.network_id
+                # BS の TSID は、ARIB TR-B15 第三分冊 第一部 第七編 8.1.1 によると
+                # (network_idの下位4ビット:4bit)(放送開始時期を示すフラグ:3bit)(トランスポンダ番号:5bit)(予約:1bit)(スロット番号:3bit) の 16bit で構成されている
+                # ここからビット演算でトランスポンダ番号とスロット番号を取得する
+                if ts_info.network_id == 4:
+                    ts_info.satellite_transponder = (transport_stream.transport_stream_id >> 4) & 0b11111
+                    ts_info.satellite_slot = transport_stream.transport_stream_id & 0b111
+                    ts_info.physical_channel = f'BS{ts_info.satellite_transponder:02d}/TS{ts_info.satellite_slot}'
+                # CS110 の TSID は、ARIB TR-B15 第四分冊 第二部 第七編 8.1.1 によると
+                # (network_idの下位4ビット:4bit)(予約:3bit)(トランスポンダ番号:5bit)(予約:1bit)(スロット番号:3bit) の 16bit で構成されている
+                # ここからビット演算でトランスポンダ番号とスロット番号を取得する
+                elif ts_info.network_id == 6 or ts_info.network_id == 7:
+                    ts_info.satellite_transponder = (transport_stream.transport_stream_id >> 4) & 0b11111
+                    ts_info.satellite_slot = transport_stream.transport_stream_id & 0b111  # 実運用上常に 0 になる
+                    ts_info.physical_channel = f'CS{ts_info.satellite_transponder:02d}'
                 if ts_info.network_id >= 0x7880 and ts_info.network_id <= 0x7FE8:
                     # TS 情報記述子 (地上波のみ)
                     for ts_information in transport_stream.descriptors.get(TSInformationDescriptor, []):
-                        ts_info.network_name = ts_information.ts_name_char  # TS 名 (ネットワーク名として設定)
+                        ts_info.network_name = str(ts_information.ts_name_char)  # TS 名 (ネットワーク名として設定)
                         ts_info.remote_control_key_id = ts_information.remote_control_key_id  # リモコンキー ID
                         break
                     # 部分受信記述子 (地上波のみ)
@@ -109,7 +123,7 @@ class TransportStreamAnalyzer(TransportStreamFile):
                 else:
                     # ネットワーク名記述子
                     for network_name in nit.network_descriptors.get(NetworkNameDescriptor, []):
-                        ts_info.network_name = network_name.char  # ネットワーク名 (地上波では "関東広域0" のような値になるので利用しない)
+                        ts_info.network_name = str(network_name.char)  # ネットワーク名 (地上波では "関東広域0" のような値になるので利用しない)
                         break
 
         # SDT からサービスの情報を取得
@@ -131,7 +145,7 @@ class TransportStreamAnalyzer(TransportStreamFile):
                 service_info.is_free = not bool(service.free_CA_mode)
                 for service in service.descriptors.get(ServiceDescriptor, []):
                     service_info.service_type = service.service_type
-                    service_info.service_name = service.service_name
+                    service_info.service_name = str(service.service_name)
                     break
             # service_id 順にソート
             ts_info = ts_info_list.get(sdt.transport_stream_id)
