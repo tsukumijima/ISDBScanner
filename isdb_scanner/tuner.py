@@ -7,7 +7,7 @@ import threading
 from collections.abc import Iterator
 from pathlib import Path
 
-from TSChannelScanner.constants import (
+from ISDBScanner.constants import (
     ISDBT_TUNER_DEVICE_PATHS,
     ISDBS_TUNER_DEVICE_PATHS,
     ISDB_MULTI_TUNER_DEVICE_PATHS,

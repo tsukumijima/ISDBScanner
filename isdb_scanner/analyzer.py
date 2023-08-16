@@ -2,8 +2,18 @@
 from __future__ import annotations
 
 from ariblib import TransportStreamFile
-from ariblib.descriptors import *
-from ariblib.sections import *
+from ariblib.descriptors import (
+    NetworkNameDescriptor,
+    PartialReceptionDescriptor,
+    SatelliteDeliverySystemDescriptor,
+    ServiceDescriptor,
+    TSInformationDescriptor,
+)
+from ariblib.sections import (
+    ActualNetworkNetworkInformationSection,
+    ServiceDescriptionSection,
+)
+from collections import defaultdict
 from io import BytesIO
 from pydantic import BaseModel
 from typing import Any
@@ -11,12 +21,13 @@ from typing import Any
 
 class TransportStreamInfo(BaseModel):
     physical_channel: str = ''
-    satellite_transponder: int | None = None
-    satellite_slot: int | None = None
     transport_stream_id: int = -1
     network_id: int = -1
     network_name: str = ''
     remote_control_key_id: int | None = None
+    satellite_frequency: int | None = None
+    satellite_transponder: int | None = None
+    satellite_slot: int | None = None
     services: list[ServiceInfo] = []
 
 class ServiceInfo(BaseModel):
@@ -38,7 +49,7 @@ class TransportStreamAnalyzer(TransportStreamFile):
         """
         TransportStreamAnalyzer を初期化する
         BS / CS110 では、NIT や SDT などの SI (Service Information) の送出間隔 (2023/08 時点で最大 10 秒周期) の関係で、
-        10 秒以上の長さを持つ TS ストリームを指定する必要がある (地上波の SI 送出間隔は 1 秒周期)
+        最低 15 秒以上の長さを持つ TS ストリームを指定する必要がある (なお地上波の SI 送出間隔は最大 2 秒周期)
 
         Args:
             ts_stream_data (bytearray): チューナーから受信した TS ストリーム
@@ -120,10 +131,33 @@ class TransportStreamAnalyzer(TransportStreamFile):
                             service_info.is_oneseg = True
                         break
                 else:
+                    # 衛星分配システム記述子 (衛星放送のみ)
+                    for satellite_delivery_system in transport_stream.descriptors.get(SatelliteDeliverySystemDescriptor, []):
+                        ts_info.satellite_frequency = satellite_delivery_system.frequency  # GHz 単位
                     # ネットワーク名記述子
                     for network_name in nit.network_descriptors.get(NetworkNameDescriptor, []):
                         ts_info.network_name = str(network_name.char)  # ネットワーク名 (地上波では "関東広域0" のような値になるので利用しない)
                         break
+
+        # BS のスロット番号を 0 からの連番に振り直す
+        ## TSID は ARIB TR-B15 第三分冊 第一部 第七編 8.1.1 の規定により末尾 3bit がスロット番号となっていて、
+        ## ISDB-S の TMCC 信号内の相対 TS 番号と同一になるとされている
+        ## ところが、BS 帯域再編の影響でスロット番号 0 を持つ TS が存在しない場合がある
+        ## (規定にも「ただし例外として、再編により相対 TS 番号の若い TS が他中継器へ移動あるいは消滅する場合は、
+        ## 残る TS に対し相対 TS 番号を前詰めとし、bit (2-0) は従前の値を継承して割り付けることを可能とする」とある)
+        ## 一方 px4_drv は選局時に 0 スタートかつ歯抜けがない連番の相対 TS 番号を求めるため、スロット番号に齟齬が生じる
+        ## ここでは便宜上スロット番号を多くのチューナーが要求する 0 からの連番 (≒ TMCC 信号内の相対 TS 番号 (?)) に振り直すこととする
+        # 同じトランスポンダ (中継器) を持つ TS ごとにグループ化
+        groups: defaultdict[int, list[TransportStreamInfo]] = defaultdict(list)
+        for ts_info in ts_info_list.values():
+            if ts_info.network_id == 4 and ts_info.satellite_transponder is not None:
+                groups[ts_info.satellite_transponder].append(ts_info)
+        # 各グループをスロット番号順にソートし、satellite_slot を連番で振り直して、合わせて physical_channel を更新する
+        for group in groups.values():
+            group.sort(key=lambda ts_info: ts_info.satellite_slot or -1)
+            for count, ts_info in enumerate(group):
+                ts_info.satellite_slot = count
+                ts_info.physical_channel = f'BS{ts_info.satellite_transponder:02d}/TS{ts_info.satellite_slot}'
 
         # SDT からサービスの情報を取得
         self.seek(0)
