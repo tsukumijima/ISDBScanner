@@ -45,7 +45,7 @@ class TransportStreamAnalyzer(TransportStreamFile):
     """
 
 
-    def __init__(self, ts_stream_data: bytearray, chunk_size: int = 10000):
+    def __init__(self, ts_stream_data: bytearray, tuned_physical_channel: str, chunk_size: int = 10000):
         """
         TransportStreamAnalyzer を初期化する
         BS / CS110 では、NIT や SDT などの SI (Service Information) の送出間隔 (2023/08 時点で最大 10 秒周期) の関係で、
@@ -53,22 +53,24 @@ class TransportStreamAnalyzer(TransportStreamFile):
 
         Args:
             ts_stream_data (bytearray): チューナーから受信した TS ストリーム
+            tuned_physical_channel (str): TS ストリームの受信時に選局した物理チャンネル (ex: "T13" / "BS23_3", "CS04")
             chunk_size (int, optional): チャンクサイズ. Defaults to 10000.
         """
 
-        self.bytes_io = BytesIO(ts_stream_data)
+        self.tuned_physical_channel = tuned_physical_channel
         self.chunk_size = chunk_size
+        self._bytes_io = BytesIO(ts_stream_data)
         self._callbacks: Any = dict()
 
 
     # TransportStreamFile は BufferedReader を継承しているが、BufferedReader ではメモリ上のバッファを直接操作できないため、
     # BufferedReader から継承しているメソッドのうち、TransportStreamFile の動作に必要なメソッドだけをオーバーライドしている
     def read(self, size: int | None = -1) -> bytes:
-        return self.bytes_io.read(size)
+        return self._bytes_io.read(size)
     def seek(self, offset: int, whence: int = 0) -> int:
-        return self.bytes_io.seek(offset, whence)
+        return self._bytes_io.seek(offset, whence)
     def tell(self) -> int:
-        return self.bytes_io.tell()
+        return self._bytes_io.tell()
 
 
     def analyze(self) -> list[TransportStreamInfo]:
@@ -159,9 +161,14 @@ class TransportStreamAnalyzer(TransportStreamFile):
                 ts_info.satellite_slot = count
                 ts_info.physical_channel = f'BS{ts_info.satellite_transponder:02d}/TS{ts_info.satellite_slot}'
 
-        # TS 情報を物理チャンネル順に並び替える
-        ## 地上波では当然ながら PSI/SI からは受信中の物理チャンネルを判定できないが、そもそも地上波の特性上 1TS しか取得されないので何も起こらない
-        ts_info_list = dict(sorted(ts_info_list.items(), key=lambda x: x[1].physical_channel))
+        # 解析中の TS ストリーム選局時の物理チャンネルが地上波 ("T13" など) なら、常に選局した 1TS のみが取得されるはず
+        ## 地上波では当然ながら PSI/SI からは受信中の物理チャンネルを判定できないので、ここで別途セットする
+        if self.tuned_physical_channel.startswith('T'):
+            assert len(ts_info_list) == 1
+            ts_info_list[list(ts_info_list.keys())[0]].physical_channel = self.tuned_physical_channel
+        # 地上波以外では、TS 情報を物理チャンネル順に並び替える
+        else:
+            ts_info_list = dict(sorted(ts_info_list.items(), key=lambda x: x[1].physical_channel))
 
         # SDT からサービスの情報を取得
         self.seek(0)

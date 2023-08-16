@@ -12,12 +12,12 @@ from isdb_scanner.tuner import (
 
 def main():
 
-    # 地上波のチャンネルスキャン
-    isdbt_devices = ISDBTuner.getAvailableISDBSTunerDevices()
-    isdbt_tuner = ISDBTuner(isdbt_devices[1], output_recisdb_log=True)
+    tuners = ISDBTuner.getAvailableISDBTTuners()
+
+    physical_channel = 'T27'
 
     try:
-        result = isdbt_tuner.tune('CS02', tune_time=20)
+        ts_stream_data = tuners[0].tune(physical_channel, tune_time=10)
     except TunerOpeningError as ex:
         print(f'チューナーのオープンに失敗しました。({ex})')
         return
@@ -28,9 +28,9 @@ def main():
         print(f'チャンネルの出力に失敗しました。({ex})')
         return
     print('チャンネルスキャン成功')
-    print(len(result))
+    print(len(ts_stream_data))
 
-    TransportStreamAnalyzer(result).analyze()
+    TransportStreamAnalyzer(ts_stream_data, physical_channel).analyze()
 
 
 if __name__ == "__main__":

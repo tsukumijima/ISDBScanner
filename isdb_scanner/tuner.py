@@ -1,4 +1,6 @@
 
+from __future__ import annotations
+
 import re
 import signal
 import subprocess
@@ -198,45 +200,45 @@ class ISDBTuner:
 
 
     @staticmethod
-    def getAvailableISDBTTunerDevices() -> list[Path]:
+    def getAvailableISDBTTuners() -> list[ISDBTuner]:
         """
-        利用可能な ISDB-T チューナーデバイスのパスのリストを取得する
+        利用可能な ISDB-T チューナーのリストを取得する
         ISDB-T 専用チューナーと ISDB-T/S 共用チューナーの両方が含まれる
 
         Returns:
-            list[Path]: 利用可能な ISDB-T チューナーデバイスのパスのリスト
+            list[ISDBTuner]: 利用可能な ISDB-T チューナーのリスト
         """
 
-        # デバイスファイルが存在するパスのリストを取得
-        device_paths: list[Path] = []
+        # 存在するデバイスのパスを取得し、ISDBTuner を初期化してリストに追加
+        tuners: list[ISDBTuner] = []
         for device_path in [*ISDBT_TUNER_DEVICE_PATHS, *ISDB_MULTI_TUNER_DEVICE_PATHS]:
             device_path = Path(device_path)
             if not device_path.exists():
                 continue
-            device_paths.append(device_path)
+            tuners.append(ISDBTuner(device_path))
 
-        return device_paths
+        return tuners
 
 
     @staticmethod
-    def getAvailableISDBSTunerDevices() -> list[Path]:
+    def getAvailableISDBSTuners() -> list[ISDBTuner]:
         """
-        利用可能な ISDB-S チューナーデバイスのパスのリストを取得する
+        利用可能な ISDB-S チューナーのリストを取得する
         ISDB-S 専用チューナーと ISDB-T/S 共用チューナーの両方が含まれる
 
         Returns:
-            list[Path]: 利用可能な ISDB-S チューナーデバイスのパスのリスト
+            list[ISDBTuner]: 利用可能な ISDB-S チューナーのリスト
         """
 
-        # デバイスファイルが存在するパスのリストを取得
-        device_paths: list[Path] = []
+        # 存在するデバイスのパスを取得し、ISDBTuner を初期化してリストに追加
+        tuners: list[ISDBTuner] = []
         for device_path in [*ISDBS_TUNER_DEVICE_PATHS, *ISDB_MULTI_TUNER_DEVICE_PATHS]:
             device_path = Path(device_path)
             if not device_path.exists():
                 continue
-            device_paths.append(device_path)
+            tuners.append(ISDBTuner(device_path))
 
-        return device_paths
+        return tuners
 
 
 class TunerOpeningError(Exception):

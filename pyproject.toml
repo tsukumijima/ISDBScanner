@@ -2,7 +2,7 @@
 name = "isdb-scanner"
 version = "1.0.0"
 description = ""
-authors = ["tsukumi <tsukumijima@users.noreply.github.com"]
+authors = ["tsukumi <tsukumijima@users.noreply.github.com>"]
 license = "MIT"
 readme = "Readme.md"
 
