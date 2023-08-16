@@ -17,7 +17,7 @@ def main():
     isdbt_tuner = ISDBTuner(isdbt_devices[1], output_recisdb_log=True)
 
     try:
-        result = isdbt_tuner.tune('BS15_0', tune_time=20)
+        result = isdbt_tuner.tune('CS02', tune_time=20)
     except TunerOpeningError as ex:
         print(f'チューナーのオープンに失敗しました。({ex})')
         return

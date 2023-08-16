@@ -159,6 +159,10 @@ class TransportStreamAnalyzer(TransportStreamFile):
                 ts_info.satellite_slot = count
                 ts_info.physical_channel = f'BS{ts_info.satellite_transponder:02d}/TS{ts_info.satellite_slot}'
 
+        # TS 情報を物理チャンネル順に並び替える
+        ## 地上波では当然ながら PSI/SI からは受信中の物理チャンネルを判定できないが、そもそも地上波の特性上 1TS しか取得されないので何も起こらない
+        ts_info_list = dict(sorted(ts_info_list.items(), key=lambda x: x[1].physical_channel))
+
         # SDT からサービスの情報を取得
         self.seek(0)
         for sdt in self.sections(ServiceDescriptionSection):
