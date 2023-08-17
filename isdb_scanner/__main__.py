@@ -1,5 +1,4 @@
 
-import json
 import typer
 from rich import print
 from rich.rule import Rule
@@ -32,7 +31,7 @@ def main():
     print(Rule(characters='-', style=Style(color='#E33157')))
     isdbt_tuners = ISDBTuner.getAvailableISDBTTuners()
     for isdbt_tuner in isdbt_tuners:
-        print(f'Found tuner: {isdbt_tuner.device_path}')
+        print(f'Found Tuner: {isdbt_tuner.device_path}')
 
     # 地上波のチャンネルスキャンを実行 (T13 - T62)
     terrestrial_ts_infos: list[TransportStreamInfo] = []
@@ -40,14 +39,14 @@ def main():
         try:
             for tuner in isdbt_tuners:
                 print(Rule(characters='-', style=Style(color='#E33157')))
-                print(f'Channel : [bright_green]Terrestrial - {channel}[/bright_green]')
-                print(f'Tuner   : {tuner.device_path}')
+                print(f'Channel: [bright_green]Terrestrial - {channel}[/bright_green]')
+                print(f'Tuner: {tuner.device_path}')
                 try:
                     tuner.output_recisdb_log = True
                     ts_stream_data = tuner.tune(channel, tune_time=10)
                     ts_infos = TransportStreamAnalyzer(ts_stream_data, channel).analyze()
                     terrestrial_ts_infos.extend(ts_infos)
-                    print(f'[green]Channel found: {ts_infos[0].network_name}[/green]')
+                    print(f'[green]Found Channel: {ts_infos[0].network_name}[/green]')
                     print(ts_infos)
                     break
                 except TunerOpeningError:
@@ -77,7 +76,7 @@ def main():
     print(Rule(characters='-', style=Style(color='#E33157')))
     isdbs_tuners = ISDBTuner.getAvailableISDBSTuners()
     for isdbs_tuner in isdbs_tuners:
-        print(f'Found tuner: {isdbs_tuner.device_path}')
+        print(f'Found Tuner: {isdbs_tuner.device_path}')
 
     # BS・CS1・CS2 のチャンネルスキャンを実行
     bs_ts_infos: list[TransportStreamInfo] = []
@@ -86,8 +85,8 @@ def main():
         for tuner in isdbs_tuners:
             print(Rule(characters='-', style=Style(color='#E33157')))
             channel_type = 'BS' if channel.startswith('BS') else ('CS1' if channel.startswith('CS02') else 'CS2')
-            print(f'Channel : [bright_green]{channel_type} - {channel.replace("_", "/TS")}[/bright_green]')
-            print(f'Tuner   : {tuner.device_path}')
+            print(f'Channel: [bright_green]{channel_type} - {channel.replace("_", "/TS")}[/bright_green]')
+            print(f'Tuner: {tuner.device_path}')
             try:
                 tuner.output_recisdb_log = True
                 ts_stream_data = tuner.tune(channel, tune_time=20)
@@ -97,7 +96,7 @@ def main():
                 elif channel.startswith('CS'):
                     cs_ts_infos.extend(ts_infos)
                 for ts_info in ts_infos:
-                    print(f'[green]Channel found: {ts_info.network_name}[/green]')
+                    print(f'[green]Found Channel: {ts_info.network_name}[/green]')
                 print(ts_infos)
                 break
             except TunerOpeningError:
@@ -115,10 +114,6 @@ def main():
     cs_ts_infos = sorted(cs_ts_infos, key=lambda x: x.physical_channel)
 
     print(Rule(characters='=', style=Style(color='#E33157')))
-
-    print(terrestrial_ts_infos)
-    print(bs_ts_infos)
-    print(cs_ts_infos)
 
     with open('terrestrial.json', 'w') as f:
         f.write(TransportStreamInfoList(root=terrestrial_ts_infos).model_dump_json(indent=4))
