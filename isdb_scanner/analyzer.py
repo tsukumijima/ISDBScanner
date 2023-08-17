@@ -16,6 +16,7 @@ from ariblib.sections import (
 from collections import defaultdict
 from io import BytesIO
 from pydantic import BaseModel
+from pydantic import RootModel
 from typing import Any
 
 
@@ -29,6 +30,9 @@ class TransportStreamInfo(BaseModel):
     satellite_transponder: int | None = None
     satellite_slot: int | None = None
     services: list[ServiceInfo] = []
+
+class TransportStreamInfoList(RootModel[list[TransportStreamInfo]]):
+    root: list[TransportStreamInfo]
 
 class ServiceInfo(BaseModel):
     service_id: int = -1
@@ -84,7 +88,7 @@ class TransportStreamAnalyzer(TransportStreamFile):
 
         # transport_stream_id をキーにして TS の情報を格納する
         # transport_stream_id は事実上日本国内すべての放送波で一意 (のはず)
-        ts_info_list: dict[int, TransportStreamInfo] = {}
+        ts_infos: dict[int, TransportStreamInfo] = {}
 
         # NIT (自ネットワーク) からトランスポートストリームの情報を取得
         # 自ネットワーク: 選局中の TS が所属するものと同一のネットワーク
@@ -93,12 +97,12 @@ class TransportStreamAnalyzer(TransportStreamFile):
             for transport_stream in nit.transport_streams:
                 # トランスポートストリームの情報を格納
                 # すでに同じ transport_stream_id の TS が登録されている場合は既存の情報を上書きする
-                if transport_stream.transport_stream_id in ts_info_list:
-                    ts_info = ts_info_list[transport_stream.transport_stream_id]
+                if transport_stream.transport_stream_id in ts_infos:
+                    ts_info = ts_infos[transport_stream.transport_stream_id]
                 else:
                     ts_info = TransportStreamInfo()
                     ts_info.transport_stream_id = int(transport_stream.transport_stream_id)
-                    ts_info_list[ts_info.transport_stream_id] = ts_info
+                    ts_infos[ts_info.transport_stream_id] = ts_info
                 ts_info.network_id = int(nit.network_id)
                 # BS の TSID は、ARIB TR-B15 第三分冊 第一部 第七編 8.1.1 によると
                 # (network_idの下位4ビット:4bit)(放送開始時期を示すフラグ:3bit)(トランスポンダ番号:5bit)(予約:1bit)(スロット番号:3bit) の 16bit で構成されている
@@ -151,7 +155,7 @@ class TransportStreamAnalyzer(TransportStreamFile):
         ## ここでは便宜上スロット番号を多くのチューナーが要求する 0 からの連番 (≒ TMCC 信号内の相対 TS 番号 (?)) に振り直すこととする
         # 同じトランスポンダ (中継器) を持つ TS ごとにグループ化
         groups: defaultdict[int, list[TransportStreamInfo]] = defaultdict(list)
-        for ts_info in ts_info_list.values():
+        for ts_info in ts_infos.values():
             if ts_info.network_id == 4 and ts_info.satellite_transponder is not None:
                 groups[ts_info.satellite_transponder].append(ts_info)
         # 各グループをスロット番号順にソートし、satellite_slot を連番で振り直して、合わせて physical_channel を更新する
@@ -164,18 +168,18 @@ class TransportStreamAnalyzer(TransportStreamFile):
         # 解析中の TS ストリーム選局時の物理チャンネルが地上波 ("T13" など) なら、常に選局した 1TS のみが取得されるはず
         ## 地上波では当然ながら PSI/SI からは受信中の物理チャンネルを判定できないので、ここで別途セットする
         if self.tuned_physical_channel.startswith('T'):
-            assert len(ts_info_list) == 1
-            ts_info_list[list(ts_info_list.keys())[0]].physical_channel = self.tuned_physical_channel
+            assert len(ts_infos) == 1
+            ts_infos[list(ts_infos.keys())[0]].physical_channel = self.tuned_physical_channel
         # 地上波以外では、TS 情報を物理チャンネル順に並び替える
         else:
-            ts_info_list = dict(sorted(ts_info_list.items(), key=lambda x: x[1].physical_channel))
+            ts_infos = dict(sorted(ts_infos.items(), key=lambda x: x[1].physical_channel))
 
         # SDT からサービスの情報を取得
         self.seek(0)
         for sdt in self.sections(ServiceDescriptionSection):
             for service in sdt.services:
                 # すでに取得されているはずのトランスポートストリームの情報を取得
-                ts_info = ts_info_list.get(sdt.transport_stream_id)
+                ts_info = ts_infos.get(sdt.transport_stream_id)
                 if ts_info is None:
                     continue
                 # サービスの情報を格納
@@ -192,12 +196,9 @@ class TransportStreamAnalyzer(TransportStreamFile):
                     service_info.service_name = str(service.service_name)
                     break
             # service_id 順にソート
-            ts_info = ts_info_list.get(sdt.transport_stream_id)
+            ts_info = ts_infos.get(sdt.transport_stream_id)
             if ts_info is not None:
                 ts_info.services.sort(key=lambda x: x.service_id)
 
-        from devtools import debug
-        debug(ts_info_list)
-
         # list に変換して返す
-        return list(ts_info_list.values())
+        return list(ts_infos.values())
