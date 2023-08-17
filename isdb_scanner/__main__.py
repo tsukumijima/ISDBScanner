@@ -75,7 +75,7 @@ def main():
 
     # チューナーを取得
     print(Rule(characters='-', style=Style(color='#E33157')))
-    isdbs_tuners = ISDBTuner.getAvailableISDBTTuners()
+    isdbs_tuners = ISDBTuner.getAvailableISDBSTuners()
     for isdbs_tuner in isdbs_tuners:
         print(f'Found tuner: {isdbs_tuner.device_path}')
 

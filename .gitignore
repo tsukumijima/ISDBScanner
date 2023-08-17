@@ -140,3 +140,5 @@ cython_debug/
 
 # ignore .gitkeep
 !.gitkeep
+
+*.json
