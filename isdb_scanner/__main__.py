@@ -46,7 +46,8 @@ def main():
                     ts_stream_data = tuner.tune(channel, tune_time=10)
                     ts_infos = TransportStreamAnalyzer(ts_stream_data, channel).analyze()
                     terrestrial_ts_infos.extend(ts_infos)
-                    print(f'[green]Found Channel: {ts_infos[0].network_name}[/green]')
+                    for service in ts_infos[0].services:
+                        print(f'[green]Found Channel: {service.service_name}[/green]')
                     print(ts_infos)
                     break
                 except TunerOpeningError:
@@ -96,7 +97,8 @@ def main():
                 elif channel.startswith('CS'):
                     cs_ts_infos.extend(ts_infos)
                 for ts_info in ts_infos:
-                    print(f'[green]Found Channel: {ts_info.network_name}[/green]')
+                    for service in ts_info.services:
+                        print(f'[green]Found Channel: {service.service_name}[/green]')
                 print(ts_infos)
                 break
             except TunerOpeningError:
