@@ -98,7 +98,7 @@ class TransportStreamAnalyzer(TransportStreamFile):
                     elif ts_info.network_id == 6 or ts_info.network_id == 7:
                         ts_info.satellite_transponder = (ts_info.transport_stream_id >> 4) & 0b11111
                         ts_info.physical_channel = f'CS{ts_info.satellite_transponder:02d}'
-                    if ts_info.network_id >= 0x7880 and ts_info.network_id <= 0x7FE8:
+                    if 0x7880 <= ts_info.network_id <= 0x7FE8:
                         # TS 情報記述子 (地上波のみ)
                         for ts_information in transport_stream.descriptors.get(TSInformationDescriptor, []):
                             # TS 名 (ネットワーク名として設定)
@@ -183,6 +183,25 @@ class TransportStreamAnalyzer(TransportStreamFile):
                 ts_info = ts_infos.get(sdt.transport_stream_id)
                 if ts_info is not None:
                     ts_info.services.sort(key=lambda x: x.service_id)
+
+            # 3桁チャンネル番号を算出
+            for ts_info in ts_infos.values():
+                for service_info in ts_info.services:
+                    # 地上波: ((サービス種別 × 200) + remote_control_key_id × 10) + (サービス番号 + 1)
+                    if 0x7880 <= ts_info.network_id <= 0x7FE8:
+                        assert ts_info.remote_control_key_id is not None
+                        # 地上波のサービス ID は、ARIB TR-B14 第五分冊 第七編 9.1 によると
+                        # (地域種別:6bit)(県複フラグ:1bit)(サービス種別:2bit)(地域事業者識別:4bit)(サービス番号:3bit)
+                        # の 16bit で構成されている
+                        # ビット演算でサービス識別 (0~3) を取得する
+                        service_type = (service_info.service_id & 0b0000000110000000) >> 7
+                        # ビット演算でサービス番号 (0~7) を取得する (1~8 に直すために +1 する)
+                        service_number = (service_info.service_id & 0b0000000000000111) + 1
+                        # ARIB TR-B14 第五分冊 第七編 9.1.3 (d) の「3桁番号」の通りに算出する
+                        service_info.channel_number = f'{(service_type * 200) + (ts_info.remote_control_key_id * 10) + service_number:03d}'
+                    # BS/CS: サービス ID と同一
+                    else:
+                        service_info.channel_number = f'{service_info.service_id:03d}'
 
         # TS データが破損しているなどエラーの原因は色々考えられるが想定のしようがないので、とりあえず例外を送出しておく
         except Exception as ex:

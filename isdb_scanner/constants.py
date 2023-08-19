@@ -8,11 +8,30 @@ from pydantic import RootModel
 # Pydantic モデルの定義
 
 class ServiceInfo(BaseModel):
-    service_id: int = -1           # サービス ID
-    service_name: str = 'Unknown'  # サービス名
-    service_type: int = -1         # サービス種別 (1: 映像サービス, 161: 臨時映像サービス, 192: データサービス/ワンセグ放送)
-    is_free: bool = True           # 無料放送かどうか
-    is_oneseg: bool = False        # ワンセグ放送かどうか
+    channel_number: str = 'Unknown'  # 3桁チャンネル番号 (BS/CS ではサービス ID と同一)
+    service_id: int = -1             # サービス ID
+    service_name: str = 'Unknown'    # サービス名
+    service_type: int = -1           # サービス種別 (1: 映像サービス, 161: 臨時映像サービス, 192: データサービス/ワンセグ放送)
+    is_free: bool = True             # 無料放送かどうか
+    is_oneseg: bool = False          # ワンセグ放送かどうか
+
+    def __str__(self) -> str:
+        message = f'Ch: {self.channel_number} | {self.service_name} '
+        if self.service_type == 2:
+            message += '[Radio]'
+        elif 0xA1 <= self.service_type <= 0xA3:
+            message += '[Temporary]'
+        elif self.service_type == 0xA4:
+            message += '[Engineering Service]'
+        elif 0xA5 <= self.service_type <= 0xA7:
+            message += '[Promotion]'
+        elif self.service_type == 0xC0 and not self.is_oneseg:
+            message += '[Data]'
+        if not self.is_free:
+            message += '[Pay TV]'
+        if self.is_oneseg:
+            message += '[OneSeg]'
+        return message.rstrip()
 
 class TransportStreamInfo(BaseModel):
     physical_channel: str = 'Unknown'         # 物理チャンネル (ex: "T13", "BS23_3", "CS04")
@@ -24,6 +43,21 @@ class TransportStreamInfo(BaseModel):
     satellite_transponder: int | None = None  # BS/CS: トランスポンダ番号
     satellite_slot_number: int | None = None  # BS: いわゆるスロット番号 (厳密には相対 TS 番号)
     services: list[ServiceInfo] = []
+
+    def __str__(self) -> str:
+        ts_type = 'Terrestrial'
+        if self.network_id == 4:
+            ts_type = 'BS'
+        elif self.network_id == 6:
+            ts_type = 'CS1'
+        elif self.network_id == 7:
+            ts_type = 'CS2'
+        message = f'{ts_type} - {self.physical_channel} / TSID: {self.transport_stream_id} '
+        if 0x7880 <= self.network_id <= 0x7FE8:
+            message += f'| {self.remote_control_key_id:02d}: {self.network_name}'
+        else:
+            message += f'/ Frequency: {self.satellite_frequency:.5f} GHz | {self.network_name}'
+        return message.rstrip()
 
 class TransportStreamInfoList(RootModel[list[TransportStreamInfo]]):
     root: list[TransportStreamInfo]
