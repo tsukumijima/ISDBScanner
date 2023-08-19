@@ -134,7 +134,7 @@ def main(
                 # チューナーの起動と TS 解析を実行
                 channel_type = 'BS' if channel.startswith('BS') else ('CS1' if channel.startswith('CS02') else 'CS2')
                 print(Rule(characters='-', style=Style(color='#E33157')))
-                print(f'Channel: [bright_blue]{channel_type} - {channel.replace("_", "/TS")}[/bright_blue]')
+                print(f'Channel: [bright_blue]{channel_type} (All channels)[/bright_blue]')
                 print(f'Tuner: {tuner.device_path}')
                 try:
                     tuner.output_recisdb_log = output_recisdb_log
