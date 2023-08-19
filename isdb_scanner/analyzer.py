@@ -107,7 +107,8 @@ class TransportStreamAnalyzer(TransportStreamFile):
                         ts_infos[ts_info.transport_stream_id] = ts_info
                     ts_info.network_id = int(nit.network_id)
                     # BS の TSID は、ARIB TR-B15 第三分冊 第一部 第七編 8.1.1 によると
-                    # (network_idの下位4ビット:4bit)(放送開始時期を示すフラグ:3bit)(トランスポンダ番号:5bit)(予約:1bit)(スロット番号:3bit) の 16bit で構成されている
+                    # (network_idの下位4ビット:4bit)(放送開始時期を示すフラグ:3bit)(トランスポンダ番号:5bit)(予約:1bit)(スロット番号:3bit)
+                    # の 16bit で構成されている
                     # ここからビット演算でトランスポンダ番号とスロット番号を取得する
                     if ts_info.network_id == 4:
                         ts_info.satellite_transponder = (ts_info.transport_stream_id >> 4) & 0b11111
@@ -122,8 +123,10 @@ class TransportStreamAnalyzer(TransportStreamFile):
                     if ts_info.network_id >= 0x7880 and ts_info.network_id <= 0x7FE8:
                         # TS 情報記述子 (地上波のみ)
                         for ts_information in transport_stream.descriptors.get(TSInformationDescriptor, []):
-                            ts_info.network_name = str(ts_information.ts_name_char)  # TS 名 (ネットワーク名として設定)
-                            ts_info.remote_control_key_id = int(ts_information.remote_control_key_id)  # リモコンキー ID
+                            # TS 名 (ネットワーク名として設定)
+                            ts_info.network_name = self.__fullWidthToHalfWith(ts_information.ts_name_char)
+                            # リモコンキー ID
+                            ts_info.remote_control_key_id = int(ts_information.remote_control_key_id)
                             break
                         # 部分受信記述子 (地上波のみ)
                         # ワンセグ放送のサービスを特定するために必要
@@ -144,7 +147,8 @@ class TransportStreamAnalyzer(TransportStreamFile):
                             ts_info.satellite_frequency = float(satellite_delivery_system.frequency)  # GHz 単位
                         # ネットワーク名記述子
                         for network_name in nit.network_descriptors.get(NetworkNameDescriptor, []):
-                            ts_info.network_name = str(network_name.char)  # ネットワーク名 (地上波では "関東広域0" のような値になるので利用しない)
+                            # ネットワーク名 (地上波では "関東広域0" のような値になるので利用しない)
+                            ts_info.network_name = self.__fullWidthToHalfWith(network_name.char)
                             break
 
             # BS のスロット番号を 0 からの連番に振り直す
@@ -195,7 +199,7 @@ class TransportStreamAnalyzer(TransportStreamFile):
                     service_info.is_free = not bool(service.free_CA_mode)
                     for service in service.descriptors.get(ServiceDescriptor, []):
                         service_info.service_type = int(service.service_type)
-                        service_info.service_name = str(service.service_name)
+                        service_info.service_name = self.__fullWidthToHalfWith(service.service_name)
                         break
                 # service_id 順にソート
                 ts_info = ts_infos.get(sdt.transport_stream_id)
@@ -208,6 +212,34 @@ class TransportStreamAnalyzer(TransportStreamFile):
 
         # list に変換して返す
         return list(ts_infos.values())
+
+
+    @staticmethod
+    def __fullWidthToHalfWith(string: str) -> str:
+        """
+        全角英数字を半角英数字に変換する
+
+        SI に含まれている ARIB 独自の文字コードである8単位符号では半角と全角のコードポイント上の厳密な区別がなく、
+        本来は MSZ (半角) と NSZ (全角) という制御コードが指定されているかで半角/全角どちらのコードポイントにマップすべきか決めるべき
+        しかしデコードに利用している ariblib は MSZ / NSZ の制御コードの解釈をサポートしていないため、
+        8単位符号中で2バイト文字で指定された英数字は全角、ASCII で指定された英数字は半角としてデコードされてしまう
+        ただ元より EDCB は EPG のチャンネル名文字列と ChSet4/5.txt のチャンネル名文字列を一致させる必要はない設計になっているため、
+        ariblib での MSZ / NSZ 制御コード対応の手間を鑑み、すべて半角に変換することとする
+
+        Args:
+            string (str): 変換前の文字列
+
+        Returns:
+            str: 変換後の文字列
+        """
+
+        # 全角英数を半角英数に置換
+        # ref: https://github.com/ikegami-yukino/jaconv/blob/master/jaconv/conv_table.py
+        zenkaku_table = '０１２３４５６７８９ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ'
+        hankaku_table = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+        merged_table = dict(zip(list(zenkaku_table), list(hankaku_table)))
+
+        return string.translate(str.maketrans(merged_table))
 
 
 class TransportStreamAnalyzeError(Exception):
