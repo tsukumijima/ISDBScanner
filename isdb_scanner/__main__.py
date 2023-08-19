@@ -1,4 +1,5 @@
 
+import json
 import typer
 from rich import print
 from rich.progress import BarColumn
@@ -173,12 +174,14 @@ def main(
 
         progress.update(task, completed=total_channel_count)
 
-    with open('terrestrial.json', 'w') as f:
-        f.write(TransportStreamInfoList(root=terrestrial_ts_infos).model_dump_json(indent=4))
-    with open('bs.json', 'w') as f:
-        f.write(TransportStreamInfoList(root=bs_ts_infos).model_dump_json(indent=4))
-    with open('cs.json', 'w') as f:
-        f.write(TransportStreamInfoList(root=cs_ts_infos).model_dump_json(indent=4))
+    # チャンネルスキャン結果を Channels.json に保存
+    channels_dict = {
+        'Terrestrial': TransportStreamInfoList(root=terrestrial_ts_infos).model_dump(mode='json'),
+        'BS': TransportStreamInfoList(root=bs_ts_infos).model_dump(mode='json'),
+        'CS': TransportStreamInfoList(root=cs_ts_infos).model_dump(mode='json'),
+    }
+    with open('Channels.json', 'w') as fp:
+        json.dump(channels_dict, fp, indent=4, ensure_ascii=False)
 
     print(Rule(characters='=', style=Style(color='#E33157')))
 
