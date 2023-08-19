@@ -57,7 +57,7 @@ def main(
                 print(f'Tuner: {tuner.device_path}')
                 try:
                     tuner.output_recisdb_log = output_recisdb_log
-                    ts_stream_data = tuner.tune(channel, tune_time=8)
+                    ts_stream_data = tuner.tune(channel, recording_time=4)  # 地上波の SI 送出間隔は最大 2 秒周期なので 4 秒で十分
                     ts_infos = TransportStreamAnalyzer(ts_stream_data, channel).analyze()
                     terrestrial_ts_infos.extend(ts_infos)
                     for ts_info in ts_infos:
@@ -115,7 +115,7 @@ def main(
             print(f'Tuner: {tuner.device_path}')
             try:
                 tuner.output_recisdb_log = output_recisdb_log
-                ts_stream_data = tuner.tune(channel, tune_time=20)
+                ts_stream_data = tuner.tune(channel, recording_time=20)  # BS・CS110 の SI 送出間隔は最大 10 秒周期 (余裕を持って 20 秒)
                 ts_infos = TransportStreamAnalyzer(ts_stream_data, channel).analyze()
                 if channel.startswith('BS'):
                     bs_ts_infos.extend(ts_infos)

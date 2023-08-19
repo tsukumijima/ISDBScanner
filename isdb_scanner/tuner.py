@@ -41,14 +41,15 @@ class ISDBTuner:
         self.output_recisdb_log = output_recisdb_log
 
 
-    def tune(self, physical_channel: str, tune_time: float = 10.0) -> bytearray:
+    def tune(self, physical_channel: str, recording_time: float = 10.0) -> bytearray:
         """
         チューナーデバイスから指定された物理チャンネルを受信する
         選局/受信できなかった場合は例外を送出する
+        録画時間にはチューナーオープンに掛かった時間を含まないほか、ISDBTuner.TUNE_TIMEOUT で指定された秒数を超えることはない
 
         Args:
             physical_channel (str): 物理チャンネル (ex: "T13", "BS23_3", "CS04")
-            tune_time (float, optional): 受信時間 (秒). Defaults to 10.0.
+            recording_time (float, optional): 録画時間 (秒). Defaults to 10.0.
 
         Returns:
             bytearray: 受信したデータ
@@ -61,7 +62,7 @@ class ISDBTuner:
 
         # recisdb (チューナープロセス) を起動
         process = subprocess.Popen(
-            ['recisdb', 'tune', '--device', str(self.device_path), '--channel', physical_channel, '--time', str(tune_time), '-'],
+            ['recisdb', 'tune', '--device', str(self.device_path), '--channel', physical_channel, '--time', str(recording_time), '-'],
             stdout = subprocess.PIPE,
             stderr = subprocess.PIPE,
         )
