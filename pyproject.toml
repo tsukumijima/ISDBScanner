@@ -8,7 +8,7 @@ readme = "Readme.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-ariblib = {url = "https://github.com/tsukumijima/ariblib/releases/download/v0.1.2/ariblib-0.1.2-py3-none-any.whl"}
+ariblib = {url = "https://github.com/tsukumijima/ariblib/releases/download/v0.1.3/ariblib-0.1.3-py3-none-any.whl"}
 devtools = "^0.11.0"
 pydantic = "^2.1.1"
 typer = {extras = ["all"], version = "^0.9.0"}

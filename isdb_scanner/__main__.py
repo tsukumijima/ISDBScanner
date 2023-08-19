@@ -5,6 +5,7 @@ from rich.rule import Rule
 from rich.style import Style
 
 from isdb_scanner import __version__
+from isdb_scanner.analyzer import TransportStreamAnalyzeError
 from isdb_scanner.analyzer import TransportStreamAnalyzer
 from isdb_scanner.analyzer import TransportStreamInfo
 from isdb_scanner.analyzer import TransportStreamInfoList
@@ -14,7 +15,12 @@ from isdb_scanner.tuner import TunerOutputError
 from isdb_scanner.tuner import TunerTuningError
 
 
-def main():
+app = typer.Typer()
+
+@app.command(help='ISDBScanner')
+def main(
+    output_recisdb_log: bool = typer.Option(False, help='Output recisdb log to stdout. (default: False)'),
+):
 
     print(Rule(
         title = f'ISDBScanner version {__version__}',
@@ -42,19 +48,25 @@ def main():
                 print(f'Channel: [bright_green]Terrestrial - {channel}[/bright_green]')
                 print(f'Tuner: {tuner.device_path}')
                 try:
-                    tuner.output_recisdb_log = True
+                    tuner.output_recisdb_log = output_recisdb_log
                     ts_stream_data = tuner.tune(channel, tune_time=10)
                     ts_infos = TransportStreamAnalyzer(ts_stream_data, channel).analyze()
                     terrestrial_ts_infos.extend(ts_infos)
-                    for service in ts_infos[0].services:
-                        print(f'[green]Found Channel: {service.service_name}[/green]')
+                    for ts_info in ts_infos:
+                        for service in ts_info.services:
+                            print(f'[green]Found Channel: {service.service_name}[/green]')
                     print(ts_infos)
                     break
-                except TunerOpeningError:
-                    print('[red]Failed to open tuner. Trying again with the next tuner...[/red]')
+                except TunerOpeningError as ex:
+                    print(f'[red]Failed to open tuner. {ex}[/red]')
+                    print('[red]Trying again with the next tuner...[/red]')
                     continue
-        except TunerTuningError:
-            print('[yellow]Failed to tune channel. [/yellow]')
+                except TransportStreamAnalyzeError as ex:
+                    print(f'[red]Failed to analyze transport stream. {ex}[/red]')
+                    print('[red]Trying again with the next tuner...[/red]')
+                    continue
+        except TunerTuningError as ex:
+            print(f'[yellow]Failed to tune channel. {ex}[/yellow]')
             print('[yellow]Channel may not be received in your area. Skipping...[/yellow]')
             continue
         except TunerOutputError:
@@ -89,7 +101,7 @@ def main():
             print(f'Channel: [bright_green]{channel_type} - {channel.replace("_", "/TS")}[/bright_green]')
             print(f'Tuner: {tuner.device_path}')
             try:
-                tuner.output_recisdb_log = True
+                tuner.output_recisdb_log = output_recisdb_log
                 ts_stream_data = tuner.tune(channel, tune_time=20)
                 ts_infos = TransportStreamAnalyzer(ts_stream_data, channel).analyze()
                 if channel.startswith('BS'):
@@ -101,14 +113,21 @@ def main():
                         print(f'[green]Found Channel: {service.service_name}[/green]')
                 print(ts_infos)
                 break
-            except TunerOpeningError:
-                print('[red]Failed to open tuner. Trying again with the next tuner...[/red]')
+            except TunerOpeningError as ex:
+                print(f'[red]Failed to open tuner. {ex}[/red]')
+                print('[red]Trying again with the next tuner...[/red]')
                 continue
-            except TunerTuningError:
-                print('[red]Failed to tune channel. Trying again with the next tuner...[/red]')
+            except TunerTuningError as ex:
+                print(f'[red]Failed to tune channel. {ex}[/red]')
+                print('[red]Trying again with the next tuner...[/red]')
                 continue
             except TunerOutputError:
-                print('[red]Failed to receive data. Trying again with the next tuner...[/red]')
+                print('[red]Failed to receive data.[/red]')
+                print('[red]Trying again with the next tuner...[/red]')
+                continue
+            except TransportStreamAnalyzeError as ex:
+                print(f'[red]Failed to analyze transport stream. {ex}[/red]')
+                print('[red]Trying again with the next tuner...[/red]')
                 continue
 
     # 物理チャンネル順にソート
@@ -126,4 +145,4 @@ def main():
 
 
 if __name__ == "__main__":
-    typer.run(main)
+    app()
