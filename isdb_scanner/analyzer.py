@@ -1,6 +1,4 @@
 
-from __future__ import annotations
-
 from ariblib import TransportStreamFile
 from ariblib.descriptors import (
     NetworkNameDescriptor,
@@ -15,31 +13,10 @@ from ariblib.sections import (
 )
 from collections import defaultdict
 from io import BytesIO
-from pydantic import BaseModel
-from pydantic import RootModel
 from typing import Any
 
-
-class TransportStreamInfo(BaseModel):
-    physical_channel: str = ''
-    transport_stream_id: int = -1
-    network_id: int = -1
-    network_name: str = ''
-    remote_control_key_id: int | None = None
-    satellite_frequency: float | None = None
-    satellite_transponder: int | None = None
-    satellite_slot: int | None = None
-    services: list[ServiceInfo] = []
-
-class TransportStreamInfoList(RootModel[list[TransportStreamInfo]]):
-    root: list[TransportStreamInfo]
-
-class ServiceInfo(BaseModel):
-    service_id: int = -1
-    service_name: str = ''
-    service_type: int = -1
-    is_free: bool = True
-    is_oneseg: bool = False
+from isdb_scanner.constants import ServiceInfo
+from isdb_scanner.constants import TransportStreamInfo
 
 
 class TransportStreamAnalyzer(TransportStreamFile):

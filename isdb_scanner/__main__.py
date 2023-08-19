@@ -7,8 +7,8 @@ from rich.style import Style
 from isdb_scanner import __version__
 from isdb_scanner.analyzer import TransportStreamAnalyzeError
 from isdb_scanner.analyzer import TransportStreamAnalyzer
-from isdb_scanner.analyzer import TransportStreamInfo
-from isdb_scanner.analyzer import TransportStreamInfoList
+from isdb_scanner.constants import TransportStreamInfo
+from isdb_scanner.constants import TransportStreamInfoList
 from isdb_scanner.tuner import ISDBTuner
 from isdb_scanner.tuner import TunerOpeningError
 from isdb_scanner.tuner import TunerOutputError

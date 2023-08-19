@@ -1,4 +1,34 @@
 
+from __future__ import annotations
+
+from pydantic import BaseModel
+from pydantic import RootModel
+
+
+# Pydantic モデルの定義
+
+class ServiceInfo(BaseModel):
+    service_id: int = -1
+    service_name: str = ''
+    service_type: int = -1
+    is_free: bool = True
+    is_oneseg: bool = False
+
+class TransportStreamInfo(BaseModel):
+    physical_channel: str = ''
+    transport_stream_id: int = -1
+    network_id: int = -1
+    network_name: str = ''
+    remote_control_key_id: int | None = None
+    satellite_frequency: float | None = None
+    satellite_transponder: int | None = None
+    satellite_slot: int | None = None
+    services: list[ServiceInfo] = []
+
+class TransportStreamInfoList(RootModel[list[TransportStreamInfo]]):
+    root: list[TransportStreamInfo]
+
+
 # ref: https://github.com/tsukumijima/px4_drv
 
 # ISDB-T 専用のチューナーデバイスのパス (px4_drv)
