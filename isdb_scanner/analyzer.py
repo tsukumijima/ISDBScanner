@@ -1,5 +1,6 @@
 
 from ariblib import TransportStreamFile
+from ariblib.aribstr import AribString
 from ariblib.descriptors import (
     NetworkNameDescriptor,
     PartialReceptionDescriptor,
@@ -192,7 +193,7 @@ class TransportStreamAnalyzer(TransportStreamFile):
 
 
     @staticmethod
-    def __fullWidthToHalfWith(string: str) -> str:
+    def __fullWidthToHalfWith(string: str | AribString) -> str:
         """
         全角英数字を半角英数字に変換する
         囲み文字の置換処理が入っていない以外は KonomiTV での実装とほぼ同じ
@@ -206,11 +207,14 @@ class TransportStreamAnalyzer(TransportStreamFile):
         ariblib での MSZ / NSZ 制御コード対応の手間を鑑み、すべて半角に変換することとする
 
         Args:
-            string (str): 変換前の文字列
+            string (str | AribString): 変換前の文字列
 
         Returns:
             str: 変換後の文字列
         """
+
+        # AribString になっているので明示的に str 型にキャストする
+        string = str(string)
 
         # 全角英数を半角英数に置換
         # ref: https://github.com/ikegami-yukino/jaconv/blob/master/jaconv/conv_table.py

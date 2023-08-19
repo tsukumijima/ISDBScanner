@@ -19,6 +19,10 @@ from isdb_scanner.constants import (
 class ISDBTuner:
     """ ISDB-T/S チューナーデバイスを操作するクラス (recisdb のラッパー) """
 
+    # チューナーのタイムアウト時間 (秒)
+    ## 受信時間がタイムアウト時間を超えた場合はプロセスに SIGINT を送信して終了させる
+    TUNE_TIMEOUT = 60.0
+
     # 検出可能とする信号レベル (dB)
     ## TVTest のデフォルト値と同一
     SIGNAL_LEVEL_THRESHOLD = 7.0
@@ -57,7 +61,7 @@ class ISDBTuner:
 
         # recisdb (チューナープロセス) を起動
         process = subprocess.Popen(
-            ['recisdb', 'tune', '--device', str(self.device_path), '--channel', physical_channel, '-'],
+            ['recisdb', 'tune', '--device', str(self.device_path), '--channel', physical_channel, '--time', str(tune_time), '-'],
             stdout = subprocess.PIPE,
             stderr = subprocess.PIPE,
         )
@@ -87,13 +91,15 @@ class ISDBTuner:
         stdout_thread = threading.Thread(target=stdout_thread_func)
         stderr_thread = threading.Thread(target=stderr_thread_func)
 
-        # スレッドを開始し、タイムアウト秒数に達するまで待機
-        # タイムアウト秒数経過後にプロセスに SIGINT を送る必要があるので、標準出力のみ join する
+        # スレッドを開始し、プロセスが終了するかタイムアウト秒数に達するまで待機
+        ## 通常 ISDBScanner での使い方ではタイムアウト秒数に達することはないはずで、あるとしたらチューナーのレスポンスがフリーズした場合
+        ## タイムアウト秒数経過後にプロセスに SIGINT を送る必要があるので、標準出力のみ join する
         stdout_thread.start()
         stderr_thread.start()
-        stdout_thread.join(timeout=tune_time)
+        stdout_thread.join(timeout=self.TUNE_TIMEOUT)
 
         # 最大でもタイムアウト秒数に達しているはずなので、プロセスを終了 (Ctrl+C を送信)
+        # すでにプロセスが終了している場合は何も起こらない
         process.send_signal(signal.SIGINT)
 
         # プロセスと標準エラー出力スレッドの終了を待機
@@ -108,7 +114,7 @@ class ISDBTuner:
             if result is not None:
                 error_message = result.group(1)
             else:
-                error_message = 'Unknown error'
+                error_message = 'Channel selection failed due to an unknown error.'
 
             # チューナーオープン時のエラー
             if error_message in [

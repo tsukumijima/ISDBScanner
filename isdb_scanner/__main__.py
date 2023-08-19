@@ -39,17 +39,25 @@ def main(
     for isdbt_tuner in isdbt_tuners:
         print(f'Found Tuner: {isdbt_tuner.device_path}')
 
+    # チューナーのブラックリスト
+    ## TunerOpeningError が発生した場合に、そのチューナーをブラックリストに追加する
+    black_list_tuners: list[ISDBTuner] = []
+
     # 地上波のチャンネルスキャンを実行 (T13 - T62)
     terrestrial_ts_infos: list[TransportStreamInfo] = []
     for channel in [f"T{i}" for i in range(13, 63)]:  # T13 - T62
         try:
             for tuner in isdbt_tuners:
+                # ブラックリストに登録されているチューナーはスキップ
+                if tuner in black_list_tuners:
+                    continue
+                # チューナーの起動と TS 解析を実行
                 print(Rule(characters='-', style=Style(color='#E33157')))
                 print(f'Channel: [bright_green]Terrestrial - {channel}[/bright_green]')
                 print(f'Tuner: {tuner.device_path}')
                 try:
                     tuner.output_recisdb_log = output_recisdb_log
-                    ts_stream_data = tuner.tune(channel, tune_time=10)
+                    ts_stream_data = tuner.tune(channel, tune_time=8)
                     ts_infos = TransportStreamAnalyzer(ts_stream_data, channel).analyze()
                     terrestrial_ts_infos.extend(ts_infos)
                     for ts_info in ts_infos:
@@ -58,6 +66,7 @@ def main(
                     print(ts_infos)
                     break
                 except TunerOpeningError as ex:
+                    black_list_tuners.append(tuner)
                     print(f'[red]Failed to open tuner. {ex}[/red]')
                     print('[red]Trying again with the next tuner...[/red]')
                     continue
@@ -66,7 +75,7 @@ def main(
                     print('[red]Trying again with the next tuner...[/red]')
                     continue
         except TunerTuningError as ex:
-            print(f'[yellow]Failed to tune channel. {ex}[/yellow]')
+            print(f'[yellow]{ex}[/yellow]')
             print('[yellow]Channel may not be received in your area. Skipping...[/yellow]')
             continue
         except TunerOutputError:
@@ -96,8 +105,12 @@ def main(
     cs_ts_infos: list[TransportStreamInfo] = []
     for channel in ['BS01_0', 'CS02', 'CS04']:  # それぞれのネットワークごとの最初の物理チャンネル
         for tuner in isdbs_tuners:
-            print(Rule(characters='-', style=Style(color='#E33157')))
+            # ブラックリストに登録されているチューナーはスキップ
+            if tuner in black_list_tuners:
+                continue
+            # チューナーの起動と TS 解析を実行
             channel_type = 'BS' if channel.startswith('BS') else ('CS1' if channel.startswith('CS02') else 'CS2')
+            print(Rule(characters='-', style=Style(color='#E33157')))
             print(f'Channel: [bright_green]{channel_type} - {channel.replace("_", "/TS")}[/bright_green]')
             print(f'Tuner: {tuner.device_path}')
             try:
@@ -114,11 +127,12 @@ def main(
                 print(ts_infos)
                 break
             except TunerOpeningError as ex:
+                black_list_tuners.append(tuner)
                 print(f'[red]Failed to open tuner. {ex}[/red]')
                 print('[red]Trying again with the next tuner...[/red]')
                 continue
             except TunerTuningError as ex:
-                print(f'[red]Failed to tune channel. {ex}[/red]')
+                print(f'[red]{ex}[/red]')
                 print('[red]Trying again with the next tuner...[/red]')
                 continue
             except TunerOutputError:
