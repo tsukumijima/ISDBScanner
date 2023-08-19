@@ -195,6 +195,8 @@ class TransportStreamAnalyzer(TransportStreamFile):
     def __fullWidthToHalfWith(string: str) -> str:
         """
         全角英数字を半角英数字に変換する
+        囲み文字の置換処理が入っていない以外は KonomiTV での実装とほぼ同じ
+        ref: https://github.com/tsukumijima/KonomiTV/blob/master/server/app/utils/TSInformation.py#L79-L104
 
         SI に含まれている ARIB 独自の文字コードである8単位符号では半角と全角のコードポイント上の厳密な区別がなく、
         本来は MSZ (半角) と NSZ (全角) という制御コードが指定されているかで半角/全角どちらのコードポイントにマップすべきか決めるべき
@@ -215,6 +217,25 @@ class TransportStreamAnalyzer(TransportStreamFile):
         zenkaku_table = '０１２３４５６７８９ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ'
         hankaku_table = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
         merged_table = dict(zip(list(zenkaku_table), list(hankaku_table)))
+
+        # 全角記号を半角記号に置換
+        symbol_zenkaku_table = '＂＃＄％＆＇（）＋，－．／：；＜＝＞［＼］＾＿｀｛｜｝　'
+        symbol_hankaku_table = '"#$%&\'()+,-./:;<=>[\\]^_`{|} '
+        merged_table.update(zip(list(symbol_zenkaku_table), list(symbol_hankaku_table)))
+        merged_table.update({
+            # 一部の半角記号を全角に置換
+            # 主に見栄え的な問題（全角の方が字面が良い）
+            '!': '！',
+            '?': '？',
+            '*': '＊',
+            '~': '～',
+            '@': '＠',
+            # シャープ → ハッシュ
+            '♯': '#',
+            # 波ダッシュ → 全角チルダ
+            ## EDCB は ～ を全角チルダとして扱っているため、ISDBScanner でもそのように統一する
+            '〜': '～',
+        })
 
         return string.translate(str.maketrans(merged_table))
 
