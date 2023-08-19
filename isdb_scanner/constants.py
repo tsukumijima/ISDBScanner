@@ -8,21 +8,21 @@ from pydantic import RootModel
 # Pydantic モデルの定義
 
 class ServiceInfo(BaseModel):
-    service_id: int = -1
-    service_name: str = ''
-    service_type: int = -1
-    is_free: bool = True
-    is_oneseg: bool = False
+    service_id: int = -1           # サービス ID
+    service_name: str = 'Unknown'  # サービス名
+    service_type: int = -1         # サービス種別 (1: 映像サービス, 161: 臨時映像サービス, 192: データサービス/ワンセグ放送)
+    is_free: bool = True           # 無料放送かどうか
+    is_oneseg: bool = False        # ワンセグ放送かどうか
 
 class TransportStreamInfo(BaseModel):
-    physical_channel: str = ''
-    transport_stream_id: int = -1
-    network_id: int = -1
-    network_name: str = ''
-    remote_control_key_id: int | None = None
-    satellite_frequency: float | None = None
-    satellite_transponder: int | None = None
-    satellite_slot: int | None = None
+    physical_channel: str = 'Unknown'         # 物理チャンネル (ex: "T13", "BS23_3", "CS04")
+    transport_stream_id: int = -1             # トランスポートストリーム ID
+    network_id: int = -1                      # ネットワーク ID
+    network_name: str = 'Unknown'             # 地上波: トランスポートストリーム名 / BS/CS: ネットワーク名
+    remote_control_key_id: int | None = None  # 地上波: リモコンキー ID
+    satellite_frequency: float | None = None  # BS/CS: 周波数 (単位: GHz)
+    satellite_transponder: int | None = None  # BS/CS: トランスポンダ番号
+    satellite_slot_number: int | None = None  # BS: いわゆるスロット番号 (厳密には相対 TS 番号)
     services: list[ServiceInfo] = []
 
 class TransportStreamInfoList(RootModel[list[TransportStreamInfo]]):

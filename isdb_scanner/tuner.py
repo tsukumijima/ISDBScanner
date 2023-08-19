@@ -43,7 +43,7 @@ class ISDBTuner:
         選局/受信できなかった場合は例外を送出する
 
         Args:
-            physical_channel (str): 物理チャンネル (ex: "T13" / "BS23_3", "CS04")
+            physical_channel (str): 物理チャンネル (ex: "T13", "BS23_3", "CS04")
             tune_time (float, optional): 受信時間 (秒). Defaults to 10.0.
 
         Returns:
@@ -136,7 +136,7 @@ class ISDBTuner:
         この関数はイテレータを呼び終わってもプロセスを終了しないので、呼び出し側で明示的にプロセスを終了する必要がある
 
         Args:
-            physical_channel (str): 物理チャンネル (ex: "T13" / "BS23_3", "CS04")
+            physical_channel (str): 物理チャンネル (ex: "T13", "BS23_3", "CS04")
 
         Returns:
             tuple[subprocess.Popen, Iterator[float]]: チューナープロセスと信号レベルを返すイテレータ
@@ -175,7 +175,7 @@ class ISDBTuner:
         チューナーデバイスから指定された物理チャンネルを受信し、5回の平均信号レベルを返す
 
         Args:
-            physical_channel (str): 物理チャンネル (ex: "T13" / "BS23_3", "CS04")
+            physical_channel (str): 物理チャンネル (ex: "T13", "BS23_3", "CS04")
 
         Returns:
             float | None: 平均信号レベル (選局失敗時は None)

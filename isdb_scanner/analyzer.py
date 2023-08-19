@@ -34,7 +34,7 @@ class TransportStreamAnalyzer(TransportStreamFile):
 
         Args:
             ts_stream_data (bytearray): チューナーから受信した TS ストリーム
-            tuned_physical_channel (str): TS ストリームの受信時に選局した物理チャンネル (ex: "T13" / "BS23_3", "CS04")
+            tuned_physical_channel (str): TS ストリームの受信時に選局した物理チャンネル (ex: "T13", "BS23_3", "CS04")
             chunk_size (int, optional): チャンクサイズ. Defaults to 10000.
         """
 
@@ -89,11 +89,11 @@ class TransportStreamAnalyzer(TransportStreamFile):
                     # ここからビット演算でトランスポンダ番号とスロット番号を取得する
                     if ts_info.network_id == 4:
                         ts_info.satellite_transponder = (ts_info.transport_stream_id >> 4) & 0b11111
-                        ts_info.satellite_slot = ts_info.transport_stream_id & 0b111
-                        ts_info.physical_channel = f'BS{ts_info.satellite_transponder:02d}/TS{ts_info.satellite_slot}'
+                        ts_info.satellite_slot_number = ts_info.transport_stream_id & 0b111
+                        ts_info.physical_channel = f'BS{ts_info.satellite_transponder:02d}/TS{ts_info.satellite_slot_number}'
                     # CS110 の TSID は、ARIB TR-B15 第四分冊 第二部 第七編 8.1.1 によると
                     # (network_idの下位4ビット:4bit)(予約:3bit)(トランスポンダ番号:5bit)(予約:1bit)(スロット番号:3bit) の 16bit で構成されている
-                    # ここからビット演算でトランスポンダ番号を取得する (スロット番号は常に 0 なので取得しない)
+                    # ここからビット演算でトランスポンダ番号を取得する (CS110 ではスロット番号は常に 0 なので取得しない)
                     elif ts_info.network_id == 6 or ts_info.network_id == 7:
                         ts_info.satellite_transponder = (ts_info.transport_stream_id >> 4) & 0b11111
                         ts_info.physical_channel = f'CS{ts_info.satellite_transponder:02d}'
@@ -143,10 +143,10 @@ class TransportStreamAnalyzer(TransportStreamFile):
                     groups[ts_info.satellite_transponder].append(ts_info)
             # 各グループをスロット番号順にソートし、satellite_slot を連番で振り直して、合わせて physical_channel を更新する
             for group in groups.values():
-                group.sort(key=lambda ts_info: ts_info.satellite_slot or -1)
+                group.sort(key=lambda ts_info: ts_info.satellite_slot_number or -1)
                 for count, ts_info in enumerate(group):
-                    ts_info.satellite_slot = count
-                    ts_info.physical_channel = f'BS{ts_info.satellite_transponder:02d}/TS{ts_info.satellite_slot}'
+                    ts_info.satellite_slot_number = count
+                    ts_info.physical_channel = f'BS{ts_info.satellite_transponder:02d}/TS{ts_info.satellite_slot_number}'
 
             # 解析中の TS ストリーム選局時の物理チャンネルが地上波 ("T13" など) なら、常に選局した 1TS のみが取得されるはず
             ## 地上波では当然ながら PSI/SI からは受信中の物理チャンネルを判定できないので、ここで別途セットする
