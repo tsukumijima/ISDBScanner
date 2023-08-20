@@ -46,13 +46,16 @@ class TransportStreamInfo(BaseModel):
 
     def __str__(self) -> str:
         ts_type = 'Terrestrial'
-        if self.network_id == 4:
+        physical_channel = self.physical_channel
+        if 0x7880 <= self.network_id <= 0x7FE8:
+            physical_channel = self.physical_channel.replace('T', '') + 'ch'
+        elif self.network_id == 4:
             ts_type = 'BS'
         elif self.network_id == 6:
             ts_type = 'CS1'
         elif self.network_id == 7:
             ts_type = 'CS2'
-        message = f'{ts_type} - {self.physical_channel} / TSID: {self.transport_stream_id} '
+        message = f'{ts_type} - {physical_channel} / TSID: {self.transport_stream_id} '
         if 0x7880 <= self.network_id <= 0x7FE8:
             message += f'| {self.remote_control_key_id:02d}: {self.network_name}'
         else:

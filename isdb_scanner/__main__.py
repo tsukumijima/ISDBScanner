@@ -1,5 +1,6 @@
 
 import json
+import time
 import typer
 from rich import print
 from rich.progress import BarColumn
@@ -35,8 +36,10 @@ def main(
         align = 'center',
     ))
 
+    start_time = time.time()
+
     # トータルでスキャンする必要があるチャンネル数
-    total_channel_count = len([f'T{i}' for i in range(13, 63)]) + 3  # T13 - T62 + BS01_0 (BS) + CS02 (CS1) + CS04 (CS2)
+    total_channel_count = len([f'T{i}' for i in range(13, 63)]) + 3  # 13ch - 62ch + BS01_0 (BS) + CS02 (CS1) + CS04 (CS2)
 
     # スキャンし終えたチャンネル数 (受信できたかは問わない)
     scanned_channel_count = -1  # 初期値は -1 で、地上波のチャンネルスキャンが始まる前に 0 になる
@@ -66,9 +69,10 @@ def main(
         ## TunerOpeningError が発生した場合に、そのチューナーをブラックリストに追加する
         black_list_tuners: list[ISDBTuner] = []
 
-        # 地上波のチャンネルスキャンを実行 (T13 - T62)
+        # 地上波のチャンネルスキャンを実行 (13ch - 62ch)
+        ## 地上波のうち 53ch - 62ch はすでに廃止されているが、依然一部ケーブルテレビのコミュニティチャンネル (自主放送) で利用されている
         terrestrial_ts_infos: list[TransportStreamInfo] = []
-        for channel in [f'T{i}' for i in range(13, 63)]:  # T13 - T62
+        for channel in [f'T{i}' for i in range(13, 63)]:  # 13ch - 62ch
             scanned_channel_count += 1
             progress.update(task, completed=scanned_channel_count)
             try:
@@ -78,7 +82,7 @@ def main(
                         continue
                     # チューナーの起動と TS 解析を実行
                     print(Rule(characters='-', style=Style(color='#E33157')))
-                    print(f'Channel: [bright_blue]Terrestrial - {channel}[/bright_blue]')
+                    print(f'Channel: [bright_blue]Terrestrial - {channel.replace("T", "")}ch[/bright_blue]')
                     print(f'Tuner: {tuner.device_path}')
                     try:
                         tuner.output_recisdb_log = output_recisdb_log
@@ -183,6 +187,8 @@ def main(
     with open('Channels.json', 'w') as fp:
         json.dump(channels_dict, fp, indent=4, ensure_ascii=False)
 
+    print(Rule(characters='=', style=Style(color='#E33157')))
+    print(f'Finished in {time.time() - start_time:.2f} seconds.')
     print(Rule(characters='=', style=Style(color='#E33157')))
 
 
