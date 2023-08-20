@@ -10,8 +10,8 @@ from pydantic import RootModel
 class ServiceInfo(BaseModel):
     channel_number: str = 'Unknown'  # 3桁チャンネル番号 (BS/CS ではサービス ID と同一)
     service_id: int = -1             # サービス ID
-    service_name: str = 'Unknown'    # サービス名
     service_type: int = -1           # サービス種別 (1: 映像サービス, 161: 臨時映像サービス, 192: データサービス/ワンセグ放送)
+    service_name: str = 'Unknown'    # サービス名
     is_free: bool = True             # 無料放送かどうか
     is_oneseg: bool = False          # ワンセグ放送かどうか
 
