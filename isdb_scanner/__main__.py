@@ -115,6 +115,8 @@ def main(
         # 物理チャンネル順にソート
         terrestrial_ts_infos = sorted(terrestrial_ts_infos, key=lambda x: x.physical_channel)
 
+        # TODO: 重複するチャンネルが検出された場合の処理
+
         # ***** BS・CS110 のチャンネルスキャン *****
 
         print(Rule(characters='=', style=Style(color='#E33157')))
