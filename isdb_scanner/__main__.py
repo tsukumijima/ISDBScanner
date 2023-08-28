@@ -1,7 +1,7 @@
 
-import json
 import time
 import typer
+from pathlib import Path
 from rich import print
 from rich.progress import BarColumn
 from rich.progress import Progress
@@ -15,7 +15,7 @@ from isdb_scanner import __version__
 from isdb_scanner.analyzer import TransportStreamAnalyzeError
 from isdb_scanner.analyzer import TransportStreamAnalyzer
 from isdb_scanner.constants import TransportStreamInfo
-from isdb_scanner.constants import TransportStreamInfoList
+from isdb_scanner.formatter import JSONFormatter
 from isdb_scanner.tuner import ISDBTuner
 from isdb_scanner.tuner import TunerOpeningError
 from isdb_scanner.tuner import TunerOutputError
@@ -180,14 +180,8 @@ def main(
 
         progress.update(task, completed=total_channel_count)
 
-    # チャンネルスキャン結果を Channels.json に保存
-    channels_dict = {
-        'Terrestrial': TransportStreamInfoList(root=terrestrial_ts_infos).model_dump(mode='json'),
-        'BS': TransportStreamInfoList(root=bs_ts_infos).model_dump(mode='json'),
-        'CS': TransportStreamInfoList(root=cs_ts_infos).model_dump(mode='json'),
-    }
-    with open('Channels.json', 'w') as fp:
-        json.dump(channels_dict, fp, indent=4, ensure_ascii=False)
+    # チャンネルスキャン結果を様々なフォーマットで保存
+    JSONFormatter(Path('Channels.json'), terrestrial_ts_infos, bs_ts_infos, cs_ts_infos).save()
 
     print(Rule(characters='=', style=Style(color='#E33157')))
     print(f'Finished in {time.time() - start_time:.2f} seconds.')
