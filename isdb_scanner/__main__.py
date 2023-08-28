@@ -24,7 +24,7 @@ from isdb_scanner.tuner import TunerTuningError
 
 app = typer.Typer()
 
-@app.command(help='ISDBScanner')
+@app.command(help='ISDBScanner: Scans Japanese TV broadcast channels (ISDB-T/ISDB-S) and outputs results in various formats')
 def main(
     output_recisdb_log: bool = typer.Option(False, help='Output recisdb log to stdout. (default: False)'),
 ):
