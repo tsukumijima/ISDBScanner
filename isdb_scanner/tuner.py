@@ -19,10 +19,6 @@ from isdb_scanner.constants import (
 class ISDBTuner:
     """ ISDB-T/S チューナーデバイスを操作するクラス (recisdb のラッパー) """
 
-    # チューナーのタイムアウト時間 (秒)
-    ## 受信時間がタイムアウト時間を超えた場合はプロセスに SIGINT を送信して終了させる
-    TUNE_TIMEOUT = 60.0
-
     # 検出可能とする信号レベル (dB)
     ## TVTest のデフォルト値と同一
     SIGNAL_LEVEL_THRESHOLD = 7.0
@@ -41,15 +37,16 @@ class ISDBTuner:
         self.output_recisdb_log = output_recisdb_log
 
 
-    def tune(self, physical_channel: str, recording_time: float = 10.0) -> bytearray:
+    def tune(self, physical_channel: str, recording_time: float = 10.0, timeout: float = 15.0) -> bytearray:
         """
         チューナーデバイスから指定された物理チャンネルを受信する
         選局/受信できなかった場合は例外を送出する
-        録画時間にはチューナーオープンに掛かった時間を含まないほか、ISDBTuner.TUNE_TIMEOUT で指定された秒数を超えることはない
+        録画時間にはチューナーオープンに掛かった時間を含まないほか、タイムアウトで指定された秒数を超えることはない
 
         Args:
             physical_channel (str): 物理チャンネル (ex: "T13", "BS23_3", "CS04")
             recording_time (float, optional): 録画時間 (秒). Defaults to 10.0.
+            timeout (float, optional): 選局/受信のタイムアウト時間 (秒). Defaults to 15.0.
 
         Returns:
             bytearray: 受信したデータ
@@ -97,7 +94,7 @@ class ISDBTuner:
         ## タイムアウト秒数経過後にプロセスに SIGINT を送る必要があるので、標準出力のみ join する
         stdout_thread.start()
         stderr_thread.start()
-        stdout_thread.join(timeout=self.TUNE_TIMEOUT)
+        stdout_thread.join(timeout)
 
         # 最大でもタイムアウト秒数に達しているはずなので、プロセスを終了 (Ctrl+C を送信)
         # すでにプロセスが終了している場合は何も起こらない

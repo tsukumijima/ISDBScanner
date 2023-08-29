@@ -15,6 +15,8 @@ from isdb_scanner import __version__
 from isdb_scanner.analyzer import TransportStreamAnalyzeError
 from isdb_scanner.analyzer import TransportStreamAnalyzer
 from isdb_scanner.constants import TransportStreamInfo
+from isdb_scanner.formatter import EDCBChSet4TxtFormatter
+from isdb_scanner.formatter import EDCBChSet5TxtFormatter
 from isdb_scanner.formatter import JSONFormatter
 from isdb_scanner.tuner import ISDBTuner
 from isdb_scanner.tuner import TunerOpeningError
@@ -85,8 +87,9 @@ def main(
                     print(f'Channel: [bright_blue]Terrestrial - {channel.replace("T", "")}ch[/bright_blue]')
                     print(f'Tuner: {tuner.device_path}')
                     try:
+                        # 録画時間: 4秒 (地上波の SI 送出間隔は最大 2 秒周期なので 4 秒で十分)
                         tuner.output_recisdb_log = output_recisdb_log
-                        ts_stream_data = tuner.tune(channel, recording_time=4)  # 地上波の SI 送出間隔は最大 2 秒周期なので 4 秒で十分
+                        ts_stream_data = tuner.tune(channel, recording_time=4)
                         ts_infos = TransportStreamAnalyzer(ts_stream_data, channel).analyze()
                         terrestrial_ts_infos.extend(ts_infos)
                         for ts_info in ts_infos:
@@ -144,8 +147,9 @@ def main(
                 print(f'Channel: [bright_blue]{channel_type} (All channels)[/bright_blue]')
                 print(f'Tuner: {tuner.device_path}')
                 try:
+                    # 録画時間: 20 秒 (BS・CS110 の SI 送出間隔は最大 10 秒周期なので 20 秒で十分)
                     tuner.output_recisdb_log = output_recisdb_log
-                    ts_stream_data = tuner.tune(channel, recording_time=20)  # BS・CS110 の SI 送出間隔は最大 10 秒周期 (余裕を持って 20 秒)
+                    ts_stream_data = tuner.tune(channel, recording_time=20)
                     ts_infos = TransportStreamAnalyzer(ts_stream_data, channel).analyze()
                     if channel.startswith('BS'):
                         bs_ts_infos.extend(ts_infos)
@@ -182,6 +186,10 @@ def main(
 
     # チャンネルスキャン結果を様々なフォーマットで保存
     JSONFormatter(Path('Channels.json'), terrestrial_ts_infos, bs_ts_infos, cs_ts_infos).save()
+    EDCBChSet4TxtFormatter(Path('BonDriver_mirakc.ChSet4.txt'), terrestrial_ts_infos, bs_ts_infos, cs_ts_infos).save()
+    EDCBChSet4TxtFormatter(Path('BonDriver_mirakc_T.ChSet4.txt'), terrestrial_ts_infos, [], []).save()
+    EDCBChSet4TxtFormatter(Path('BonDriver_mirakc_S.ChSet4.txt'), [], bs_ts_infos, cs_ts_infos).save()
+    EDCBChSet5TxtFormatter(Path('ChSet5.txt'), terrestrial_ts_infos, bs_ts_infos, cs_ts_infos).save()
 
     print(Rule(characters='=', style=Style(color='#E33157')))
     print(f'Finished in {time.time() - start_time:.2f} seconds.')

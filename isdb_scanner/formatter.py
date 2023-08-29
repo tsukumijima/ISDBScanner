@@ -19,6 +19,7 @@ class BaseFormatter:
         terrestrial_ts_infos: list[TransportStreamInfo],
         bs_ts_infos: list[TransportStreamInfo],
         cs_ts_infos: list[TransportStreamInfo],
+        exclude_pay_tv: bool = False,
     ) -> None:
         """
         Args:
@@ -36,14 +37,15 @@ class BaseFormatter:
 
         # 与えられた TS 情報から有料放送サービスを除外
         ## 地上波は実運用上有料放送は存在しないが、念のため除外しておく
-        for terrestrial_ts_info in self._terrestrial_ts_infos:
-            terrestrial_ts_info.services = [service for service in terrestrial_ts_info.services if service.is_free is True]
-        for bs_ts_info in self._bs_ts_infos:
-            bs_ts_info.services = [service for service in bs_ts_info.services if service.is_free is True]
-        for cs_ts_info in self._cs_ts_infos:
-            # CS はショップチャンネルと QVC 以外は全部有料放送 (スカパー) になっていて、
-            # わざわざ通販チャンネルを見る人がいるとも思えないので全てのサービスを除外する
-            cs_ts_info.services = []
+        if exclude_pay_tv is True:
+            for terrestrial_ts_info in self._terrestrial_ts_infos:
+                terrestrial_ts_info.services = [service for service in terrestrial_ts_info.services if service.is_free is True]
+            for bs_ts_info in self._bs_ts_infos:
+                bs_ts_info.services = [service for service in bs_ts_info.services if service.is_free is True]
+            for cs_ts_info in self._cs_ts_infos:
+                # CS はショップチャンネルと QVC 以外の全サービスが有料放送 (スカパー！) として運用されている上、
+                # 無料とはいえわざわざ通販チャンネルを見る人がいるとも思えないので全てのサービスを除外する
+                cs_ts_info.services = []
 
 
     def __format(self) -> str:
@@ -180,7 +182,8 @@ class EDCBChSet4TxtFormatter(BaseFormatter):
                     ch += 1  # 0 スタートなので処理完了後にインクリメントする
 
             # メモリ上に保存した TSV を文字列として取得して返す
-            return f.getvalue()
+            ## EDCB は UTF-8 with BOM でないと受け付けないため、先頭に BOM を付与する
+            return '\ufeff' + f.getvalue()
 
 
 class EDCBChSet5TxtFormatter(BaseFormatter):
@@ -235,4 +238,5 @@ class EDCBChSet5TxtFormatter(BaseFormatter):
                     ])
 
             # メモリ上に保存した TSV を文字列として取得して返す
-            return f.getvalue()
+            ## EDCB は UTF-8 with BOM でないと受け付けないため、先頭に BOM を付与する
+            return '\ufeff' + f.getvalue()
