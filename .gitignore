@@ -142,3 +142,4 @@ cython_debug/
 !.gitkeep
 
 *.json
+*.txt

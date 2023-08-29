@@ -48,7 +48,7 @@ class BaseFormatter:
                 cs_ts_info.services = []
 
 
-    def __format(self) -> str:
+    def format(self) -> str:
         """
         フォーマットを実行する (実装はサブクラスで行う)
 
@@ -67,7 +67,7 @@ class BaseFormatter:
             str: フォーマットされた文字列
         """
 
-        formatted_str = self.__format()
+        formatted_str = self.format()
         with open(self._save_file_path, mode='w', encoding='utf-8') as f:
             f.write(formatted_str)
 
@@ -80,7 +80,7 @@ class JSONFormatter(BaseFormatter):
     """
 
 
-    def __format(self) -> str:
+    def format(self) -> str:
         """
         JSON データとしてフォーマットする
 
@@ -106,7 +106,7 @@ class EDCBChSet4TxtFormatter(BaseFormatter):
     """
 
 
-    def __format(self) -> str:
+    def format(self) -> str:
         """
         EDCB の ChSet4.txt としてフォーマットする
 
@@ -139,51 +139,54 @@ class EDCBChSet4TxtFormatter(BaseFormatter):
           remocon_id は remote_control_key_id に対応する (リモコンキー ID が存在しないチャンネルでは 0)
         """
 
-        # ヘッダーなし TSV に変換
+        # ヘッダーなし TSV (CRLF) に変換
         ## 実際のファイル書き込みは save() メソッドで行うため、ここでは StringIO に書き込む
-        with StringIO() as f:
-            writer = csv.writer(f, delimiter='\t', lineterminator='\n')
-            for ts_infos in [terrestrial_ts_infos, bs_ts_infos, cs_ts_infos]:
-                ch = 0  # 地上波・BS・CS ごとにチューナー空間が異なるので、通し番号をリセットする
-                for ts_info in ts_infos:
-                    for service in ts_info.services:
-                        ts_name_prefix = ''
+        string_io = StringIO()
+        writer = csv.writer(string_io, delimiter='\t', lineterminator='\r\n')
+        for ts_infos in [terrestrial_ts_infos, bs_ts_infos, cs_ts_infos]:
+            ch = 0  # 地上波・BS・CS ごとにチューナー空間が異なるので、通し番号をリセットする
+            for ts_info in ts_infos:
+                for service in ts_info.services:
+                    ts_name_prefix = ''
+                    space = 0
+                    if 0x7880 <= ts_info.network_id <= 0x7FE8:
+                        # 地上波
+                        ts_name_prefix = 'Terrestrial'
                         space = 0
-                        if 0x7880 <= ts_info.network_id <= 0x7FE8:
-                            # 地上波
-                            ts_name_prefix = 'Terrestrial'
-                            space = 0
-                        elif ts_info.network_id == 4:
-                            # BS
-                            ts_name_prefix = 'BS'
-                            space = 1
-                        elif ts_info.network_id == 6 or ts_info.network_id == 7:
-                            # CS
-                            ts_name_prefix = 'CS'
-                            space = 2
-                        ch_name = f'{ts_name_prefix}:{ts_info.physical_channel}'
-                        partial_flag = 1 if service.is_oneseg else 0
-                        use_view_flag = 1 if service.service_type == 0x01 else 0
-                        remocon_id = ts_info.remote_control_key_id if ts_info.remote_control_key_id is not None else 0
-                        writer.writerow([
-                            ch_name,
-                            service.service_name,
-                            ts_info.network_name,
-                            space,
-                            ch,
-                            ts_info.network_id,
-                            ts_info.transport_stream_id,
-                            service.service_id,
-                            service.service_type,
-                            partial_flag,
-                            use_view_flag,
-                            remocon_id,
-                        ])
-                    ch += 1  # 0 スタートなので処理完了後にインクリメントする
+                    elif ts_info.network_id == 4:
+                        # BS
+                        ts_name_prefix = 'BS'
+                        space = 1
+                    elif ts_info.network_id == 6 or ts_info.network_id == 7:
+                        # CS
+                        ts_name_prefix = 'CS'
+                        space = 2
+                    ch_name = f'{ts_name_prefix}:{ts_info.physical_channel}'
+                    partial_flag = 1 if service.is_oneseg else 0
+                    use_view_flag = 1 if service.service_type == 0x01 else 0
+                    remocon_id = ts_info.remote_control_key_id if ts_info.remote_control_key_id is not None else 0
+                    writer.writerow([
+                        ch_name,
+                        service.service_name,
+                        ts_info.network_name,
+                        space,
+                        ch,
+                        ts_info.network_id,
+                        ts_info.transport_stream_id,
+                        service.service_id,
+                        service.service_type,
+                        partial_flag,
+                        use_view_flag,
+                        remocon_id,
+                    ])
+                ch += 1  # 0 スタートなので処理完了後にインクリメントする
 
-            # メモリ上に保存した TSV を文字列として取得して返す
-            ## EDCB は UTF-8 with BOM でないと受け付けないため、先頭に BOM を付与する
-            return '\ufeff' + f.getvalue()
+        # StringIO の先頭にシークする
+        string_io.seek(0)
+
+        # メモリ上に保存した TSV を文字列として取得して返す
+        ## EDCB は UTF-8 with BOM でないと受け付けないため、先頭に BOM を付与する
+        return '\ufeff' + string_io.getvalue()
 
 
 class EDCBChSet5TxtFormatter(BaseFormatter):
@@ -193,7 +196,7 @@ class EDCBChSet5TxtFormatter(BaseFormatter):
     """
 
 
-    def __format(self) -> str:
+    def format(self) -> str:
         """
         EDCB の ChSet5.txt としてフォーマットする
 
@@ -216,27 +219,30 @@ class EDCBChSet5TxtFormatter(BaseFormatter):
           epg_cap_flag と search_flag (定義のみで未使用) は service_type が 0x01 (映像サービス) の場合は 1 、それ以外は 0
         """
 
-        # ヘッダーなし TSV に変換
+        # ヘッダーなし TSV (CRLF) に変換
         ## 実際のファイル書き込みは save() メソッドで行うため、ここでは StringIO に書き込む
-        with StringIO() as f:
-            writer = csv.writer(f, delimiter='\t', lineterminator='\n')
-            for ts_info in ts_infos:
-                for service in ts_info.services:
-                    partial_flag = 1 if service.is_oneseg else 0
-                    epg_cap_flag = 1 if service.service_type == 0x01 else 0
-                    search_flag = 1 if service.service_type == 0x01 else 0
-                    writer.writerow([
-                        service.service_name,
-                        ts_info.network_name,
-                        ts_info.network_id,
-                        ts_info.transport_stream_id,
-                        service.service_id,
-                        service.service_type,
-                        partial_flag,
-                        epg_cap_flag,
-                        search_flag,
-                    ])
+        string_io = StringIO()
+        writer = csv.writer(string_io, delimiter='\t', lineterminator='\r\n')
+        for ts_info in ts_infos:
+            for service in ts_info.services:
+                partial_flag = 1 if service.is_oneseg else 0
+                epg_cap_flag = 1 if service.service_type == 0x01 else 0
+                search_flag = 1 if service.service_type == 0x01 else 0
+                writer.writerow([
+                    service.service_name,
+                    ts_info.network_name,
+                    ts_info.network_id,
+                    ts_info.transport_stream_id,
+                    service.service_id,
+                    service.service_type,
+                    partial_flag,
+                    epg_cap_flag,
+                    search_flag,
+                ])
 
-            # メモリ上に保存した TSV を文字列として取得して返す
-            ## EDCB は UTF-8 with BOM でないと受け付けないため、先頭に BOM を付与する
-            return '\ufeff' + f.getvalue()
+        # StringIO の先頭にシークする
+        string_io.seek(0)
+
+        # メモリ上に保存した TSV を文字列として取得して返す
+        ## EDCB は UTF-8 with BOM でないと受け付けないため、先頭に BOM を付与する
+        return '\ufeff' + string_io.getvalue()
