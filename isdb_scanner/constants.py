@@ -17,7 +17,7 @@ class ServiceInfo(BaseModel):
 
     def __str__(self) -> str:
         message = f'Ch: {self.channel_number} | {self.service_name} '
-        if self.service_type == 2:
+        if self.service_type == 0x02:
             message += '[Radio]'
         elif 0xA1 <= self.service_type <= 0xA3:
             message += '[Temporary]'
