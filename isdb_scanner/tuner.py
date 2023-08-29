@@ -6,6 +6,7 @@ import signal
 import subprocess
 import sys
 import threading
+import time
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -37,16 +38,15 @@ class ISDBTuner:
         self.output_recisdb_log = output_recisdb_log
 
 
-    def tune(self, physical_channel: str, recording_time: float = 10.0, timeout: float = 15.0) -> bytearray:
+    def tune(self, physical_channel: str, recording_time: float = 10.0, tune_timeout: float = 5.0) -> bytearray:
         """
-        チューナーデバイスから指定された物理チャンネルを受信する
-        選局/受信できなかった場合は例外を送出する
-        録画時間にはチューナーオープンに掛かった時間を含まないほか、タイムアウトで指定された秒数を超えることはない
+        チューナーデバイスから指定された物理チャンネルを受信し、選局/受信できなかった場合は例外を送出する
+        録画時間にはチューナーオープンに掛かった時間を含まない
 
         Args:
             physical_channel (str): 物理チャンネル (ex: "T13", "BS23_3", "CS04")
             recording_time (float, optional): 録画時間 (秒). Defaults to 10.0.
-            timeout (float, optional): 選局/受信のタイムアウト時間 (秒). Defaults to 15.0.
+            tune_timeout (float, optional): 選局 (チューナーオープン) のタイムアウト時間 (秒). Defaults to 5.0.
 
         Returns:
             bytearray: 受信したデータ
@@ -64,13 +64,15 @@ class ISDBTuner:
             stderr = subprocess.PIPE,
         )
 
-        # 標準出力と標準エラー出力を別スレッドで読み込む
+        # それぞれ別スレッドで標準出力と標準エラー出力の読み込みを開始
         stdout: bytearray = bytearray()
+        is_stdout_arrived = False
         def stdout_thread_func():
-            nonlocal stdout
+            nonlocal stdout, is_stdout_arrived
             assert process.stdout is not None
             while True:
                 data = process.stdout.read(188)
+                is_stdout_arrived = True
                 if len(data) == 0:
                     break
                 stdout.extend(data)
@@ -88,17 +90,22 @@ class ISDBTuner:
                     sys.stderr.buffer.flush()
         stdout_thread = threading.Thread(target=stdout_thread_func)
         stderr_thread = threading.Thread(target=stderr_thread_func)
-
-        # スレッドを開始し、プロセスが終了するかタイムアウト秒数に達するまで待機
-        ## 通常 ISDBScanner での使い方ではタイムアウト秒数に達することはないはずで、あるとしたらチューナーのレスポンスがフリーズした場合
-        ## タイムアウト秒数経過後にプロセスに SIGINT を送る必要があるので、標準出力のみ join する
         stdout_thread.start()
         stderr_thread.start()
-        stdout_thread.join(timeout)
 
-        # 最大でもタイムアウト秒数に達しているはずなので、プロセスを終了 (Ctrl+C を送信)
-        # すでにプロセスが終了している場合は何も起こらない
-        process.send_signal(signal.SIGINT)
+        # プロセスが終了するか、選局 (チューナーオープン) のタイムアウト秒数に達するまで待機
+        # 標準出力から TS ストリームが出力されるようになったらタイムアウト秒数のカウントを停止
+        tune_timeout_count = 0
+        while process.poll() is None and tune_timeout_count < tune_timeout:
+            time.sleep(0.01)
+            if is_stdout_arrived is False:
+                tune_timeout_count += 0.01
+
+        # この時点でプロセスが終了しておらず、標準出力からまだ TS ストリームを受け取っていない場合
+        # プロセスを終了 (Ctrl+C を送信) し、タイムアウトエラーを送出する
+        if process.poll() is None and is_stdout_arrived is False:
+            process.send_signal(signal.SIGINT)
+            raise TunerTuningError('Channel selection timed out.')
 
         # プロセスと標準エラー出力スレッドの終了を待機
         process.wait()
