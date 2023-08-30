@@ -96,11 +96,11 @@ def main(
                     print(f'Channel: [bright_blue]Terrestrial - {channel.replace("T", "")}ch[/bright_blue]')
                     print(f'Tuner: {tuner.device_path}')
                     try:
-                        # 録画時間: 4秒 (地上波の SI 送出間隔は最大 2 秒周期なので 4 秒で十分)
+                        # 録画時間: 2.25 秒 (地上波の SI 送出間隔は最大 2 秒周期)
                         start_time = time.time()
                         try:
                             tuner.output_recisdb_log = output_recisdb_log
-                            ts_stream_data = tuner.tune(channel, recording_time=4)
+                            ts_stream_data = tuner.tune(channel, recording_time=2.25)
                         finally:
                             print(f'Tuning time: {time.time() - start_time:.2f} seconds')
                         # トランスポートストリームとサービスの情報を解析
@@ -167,11 +167,11 @@ def main(
                 print(f'Channel: [bright_blue]{channel_type} (All channels)[/bright_blue]')
                 print(f'Tuner: {tuner.device_path}')
                 try:
-                    # 録画時間: 20 秒 (BS・CS110 の SI 送出間隔は最大 10 秒周期なので 20 秒で十分)
+                    # 録画時間: 10.25 秒 (BS・CS110 の SI 送出間隔は最大 10 秒周期)
                     start_time = time.time()
                     try:
                         tuner.output_recisdb_log = output_recisdb_log
-                        ts_stream_data = tuner.tune(channel, recording_time=20)
+                        ts_stream_data = tuner.tune(channel, recording_time=10.25)
                     finally:
                         print(f'Tuning time: {time.time() - start_time:.2f} seconds')
                     # トランスポートストリームとサービスの情報を解析

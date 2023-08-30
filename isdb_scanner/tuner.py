@@ -38,15 +38,16 @@ class ISDBTuner:
         self.output_recisdb_log = output_recisdb_log
 
 
-    def tune(self, physical_channel: str, recording_time: float = 10.0, tune_timeout: float = 4.0) -> bytearray:
+    def tune(self, physical_channel: str, recording_time: float = 10.0, tune_timeout: float = 7.0) -> bytearray:
         """
         チューナーデバイスから指定された物理チャンネルを受信し、選局/受信できなかった場合は例外を送出する
         録画時間にはチューナーオープンに掛かった時間を含まない
+        選局タイムアウト発生時、チューナーのクローズに時間がかかる関係で最小でも合計 7 秒程度の時間が掛かる
 
         Args:
             physical_channel (str): 物理チャンネル (ex: "T13", "BS23_3", "CS04")
             recording_time (float, optional): 録画時間 (秒). Defaults to 10.0.
-            tune_timeout (float, optional): 選局 (チューナーオープン) のタイムアウト時間 (秒). Defaults to 4.0.
+            tune_timeout (float, optional): 選局 (チューナーオープン) のタイムアウト時間 (秒). Defaults to 7.0.
 
         Returns:
             bytearray: 受信したデータ
@@ -105,7 +106,8 @@ class ISDBTuner:
         # プロセスを終了 (Ctrl+C を送信) し、タイムアウトエラーを送出する
         if process.poll() is None and is_stdout_arrived is False:
             process.send_signal(signal.SIGINT)
-            process.wait()  # プロセスが完全に終了するまで待機しないと、この後の連続したチューナーオープンに失敗する
+            # ここでプロセスが完全に終了するまで待機しないと、続けて別のチャンネルを選局する際にデバイス使用中エラーが発生してしまう
+            process.wait()
             raise TunerTuningError('Channel selection timed out.')
 
         # プロセスと標準エラー出力スレッドの終了を待機
