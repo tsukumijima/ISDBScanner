@@ -33,6 +33,17 @@ class ServiceInfo(BaseModel):
             message += '[OneSeg]'
         return message.rstrip()
 
+    def isVideoServiceType(self) -> bool:
+        """
+        サービスタイプが映像サービスかどうか
+        ref: https://github.com/xtne6f/EDCB/blob/work-plus-s-230823/BonCtrl/ChSetUtil.h#L66-L74
+        """
+        return (
+            self.service_type == 0x01 or  # デジタルTVサービス
+            self.service_type == 0xA5 or  # プロモーション映像サービス
+            self.service_type == 0xAD     # 超高精細度4K専用TVサービス
+        )
+
 class TransportStreamInfo(BaseModel):
     physical_channel: str = 'Unknown'         # 物理チャンネル (ex: "T13", "BS23/TS3", "CS04")
     transport_stream_id: int = -1             # トランスポートストリーム ID
