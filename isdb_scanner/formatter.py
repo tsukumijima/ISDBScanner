@@ -27,7 +27,7 @@ class BaseFormatter:
             terrestrial_ts_infos (list[TransportStreamInfo]): スキャン結果の地上波の TS 情報
             bs_ts_infos (list[TransportStreamInfo]): スキャン結果の BS の TS 情報
             cs_ts_infos (list[TransportStreamInfo]): スキャン結果の CS の TS 情報
-            exclude_pay_tv (bool): 有料放送 (+ショップチャンネル&QVC) を除外するかどうか
+            exclude_pay_tv (bool): 有料放送 (+ショップチャンネル&QVC) を除外し、地上波と BS 無料放送のみを保存するか
         """
 
         self._save_file_path = save_file_path

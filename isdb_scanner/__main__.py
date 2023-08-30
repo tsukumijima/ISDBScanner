@@ -28,7 +28,8 @@ app = typer.Typer()
 
 @app.command(help='ISDBScanner: Scans Japanese TV broadcast channels (ISDB-T/ISDB-S) and outputs results in various formats')
 def main(
-    output_recisdb_log: bool = typer.Option(False, help='Output recisdb log to stdout. (default: False)'),
+    exclude_pay_tv: bool = typer.Option(False, help='Exclude pay-TV channels from scan results and include only free-to-air terrestrial and BS channels.'),
+    output_recisdb_log: bool = typer.Option(False, help='Output recisdb log to stdout.'),
 ):
 
     print(Rule(
@@ -40,11 +41,16 @@ def main(
 
     scan_start_time = time.time()
 
-    # トータルでスキャンする必要があるチャンネル数
-    # 13ch - 62ch + BS01_0 (BS) + CS02 (CS1) + CS04 (CS2)
-    terrestrial_channel_count = len([f'T{i}' for i in range(13, 63)])
-    satellite_channel_count = len(['BS01_0', 'CS02', 'CS04'])
-    total_channel_count = terrestrial_channel_count + satellite_channel_count
+    # トータルでスキャンする必要がある物理チャンネル数
+    ## 13ch - 62ch + BS01_0 (BS) + CS02 (CS1) + CS04 (CS2)
+    ## 地上波はフルスキャン、衛星放送はそれぞれのネットワークごとの最初の物理チャンネルのみをスキャン
+    ## 衛星放送では同一ネットワーク内の異なるチャンネルの情報を一括で取得できるため、スキャンは 3 回のみで済む
+    scan_terrestrial_physical_channels = [f'T{i}' for i in range(13, 63)]
+    if exclude_pay_tv is True:
+        scan_satellite_physical_channels = ['BS01_0']
+    else:
+        scan_satellite_physical_channels = ['BS01_0', 'CS02', 'CS04']
+    total_channel_count = len(scan_terrestrial_physical_channels) + len(scan_satellite_physical_channels)
 
     # スキャンし終えたチャンネル数 (受信できたかは問わない)
     scanned_channel_count = -1  # 初期値は -1 で、地上波のチャンネルスキャンが始まる前に 0 になる
@@ -72,7 +78,7 @@ def main(
             print('[red]Please connect an ISDB-T tuner and try again.[/red]')
             # チューナーがないため ISDB-T のスキャン処理は実行されない (for ループがスキップされる)
             # プログレスバーはスキャンする予定だった地上波チャンネル分だけ進める
-            progress.update(task, completed=terrestrial_channel_count)
+            progress.update(task, completed=len(scan_terrestrial_physical_channels))
         for isdbt_tuner in isdbt_tuners:
             print(f'Found Tuner: {isdbt_tuner.device_path}')
 
@@ -83,7 +89,7 @@ def main(
         # 地上波のチャンネルスキャンを実行 (13ch - 62ch)
         ## 地上波のうち 53ch - 62ch はすでに廃止されているが、依然一部ケーブルテレビのコミュニティチャンネル (自主放送) で利用されている
         terrestrial_ts_infos: list[TransportStreamInfo] = []
-        for channel in [f'T{i}' for i in range(13, 63)]:  # 13ch - 62ch
+        for channel in scan_terrestrial_physical_channels:
             scanned_channel_count += 1
             progress.update(task, completed=scanned_channel_count)
             try:
@@ -147,14 +153,14 @@ def main(
             print('[red]Please connect an ISDB-S tuner and try again.[/red]')
             # チューナーがないため ISDB-S のスキャン処理は実行されない (for ループがスキップされる)
             # プログレスバーはスキャンする予定だった BS・CS110 チャンネル分だけ進める
-            progress.update(task, completed=terrestrial_channel_count + satellite_channel_count)
+            progress.update(task, completed=len(scan_terrestrial_physical_channels) + len(scan_satellite_physical_channels))
         for isdbs_tuner in isdbs_tuners:
             print(f'Found Tuner: {isdbs_tuner.device_path}')
 
         # BS・CS1・CS2 のチャンネルスキャンを実行
         bs_ts_infos: list[TransportStreamInfo] = []
         cs_ts_infos: list[TransportStreamInfo] = []
-        for channel in ['BS01_0', 'CS02', 'CS04']:  # それぞれのネットワークごとの最初の物理チャンネル
+        for channel in scan_satellite_physical_channels:
             scanned_channel_count += 1
             progress.update(task, completed=scanned_channel_count)
             for tuner in isdbs_tuners:
@@ -210,11 +216,11 @@ def main(
         progress.update(task, completed=total_channel_count)
 
     # チャンネルスキャン結果を様々なフォーマットで保存
-    JSONFormatter(Path('Channels.json'), terrestrial_ts_infos, bs_ts_infos, cs_ts_infos).save()
-    EDCBChSet4TxtFormatter(Path('BonDriver_mirakc.ChSet4.txt'), terrestrial_ts_infos, bs_ts_infos, cs_ts_infos).save()
-    EDCBChSet4TxtFormatter(Path('BonDriver_mirakc_T.ChSet4.txt'), terrestrial_ts_infos, [], []).save()
-    EDCBChSet4TxtFormatter(Path('BonDriver_mirakc_S.ChSet4.txt'), [], bs_ts_infos, cs_ts_infos).save()
-    EDCBChSet5TxtFormatter(Path('ChSet5.txt'), terrestrial_ts_infos, bs_ts_infos, cs_ts_infos).save()
+    JSONFormatter(Path('Channels.json'), terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
+    EDCBChSet4TxtFormatter(Path('BonDriver_mirakc.ChSet4.txt'), terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
+    EDCBChSet4TxtFormatter(Path('BonDriver_mirakc_T.ChSet4.txt'), terrestrial_ts_infos, [], [], exclude_pay_tv).save()
+    EDCBChSet4TxtFormatter(Path('BonDriver_mirakc_S.ChSet4.txt'), [], bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
+    EDCBChSet5TxtFormatter(Path('ChSet5.txt'), terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
 
     print(Rule(characters='=', style=Style(color='#E33157')))
     print(f'Finished in {time.time() - scan_start_time:.2f} seconds.')
