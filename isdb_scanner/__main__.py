@@ -38,10 +38,13 @@ def main(
         align = 'center',
     ))
 
-    start_time = time.time()
+    scan_start_time = time.time()
 
     # トータルでスキャンする必要があるチャンネル数
-    total_channel_count = len([f'T{i}' for i in range(13, 63)]) + 3  # 13ch - 62ch + BS01_0 (BS) + CS02 (CS1) + CS04 (CS2)
+    # 13ch - 62ch + BS01_0 (BS) + CS02 (CS1) + CS04 (CS2)
+    terrestrial_channel_count = len([f'T{i}' for i in range(13, 63)])
+    satellite_channel_count = len(['BS01_0', 'CS02', 'CS04'])
+    total_channel_count = terrestrial_channel_count + satellite_channel_count
 
     # スキャンし終えたチャンネル数 (受信できたかは問わない)
     scanned_channel_count = -1  # 初期値は -1 で、地上波のチャンネルスキャンが始まる前に 0 になる
@@ -64,6 +67,12 @@ def main(
         # チューナーを取得
         print(Rule(characters='-', style=Style(color='#E33157')))
         isdbt_tuners = ISDBTuner.getAvailableISDBTTuners()
+        if len(isdbt_tuners) == 0:
+            print('[red]No ISDB-T tuner found.[/red]')
+            print('[red]Please connect an ISDB-T tuner and try again.[/red]')
+            # チューナーがないため ISDB-T のスキャン処理は実行されない (for ループがスキップされる)
+            # プログレスバーはスキャンする予定だった地上波チャンネル分だけ進める
+            progress.update(task, completed=terrestrial_channel_count)
         for isdbt_tuner in isdbt_tuners:
             print(f'Found Tuner: {isdbt_tuner.device_path}')
 
@@ -88,8 +97,13 @@ def main(
                     print(f'Tuner: {tuner.device_path}')
                     try:
                         # 録画時間: 4秒 (地上波の SI 送出間隔は最大 2 秒周期なので 4 秒で十分)
-                        tuner.output_recisdb_log = output_recisdb_log
-                        ts_stream_data = tuner.tune(channel, recording_time=4)
+                        start_time = time.time()
+                        try:
+                            tuner.output_recisdb_log = output_recisdb_log
+                            ts_stream_data = tuner.tune(channel, recording_time=4)
+                        finally:
+                            print(f'Tuning time: {time.time() - start_time:.2f} seconds')
+                        # トランスポートストリームとサービスの情報を解析
                         ts_infos = TransportStreamAnalyzer(ts_stream_data, channel).analyze()
                         terrestrial_ts_infos.extend(ts_infos)
                         for ts_info in ts_infos:
@@ -128,6 +142,12 @@ def main(
         # チューナーを取得
         print(Rule(characters='-', style=Style(color='#E33157')))
         isdbs_tuners = ISDBTuner.getAvailableISDBSTuners()
+        if len(isdbt_tuners) == 0:
+            print('[red]No ISDB-S tuner found.[/red]')
+            print('[red]Please connect an ISDB-S tuner and try again.[/red]')
+            # チューナーがないため ISDB-S のスキャン処理は実行されない (for ループがスキップされる)
+            # プログレスバーはスキャンする予定だった BS・CS110 チャンネル分だけ進める
+            progress.update(task, completed=terrestrial_channel_count + satellite_channel_count)
         for isdbs_tuner in isdbs_tuners:
             print(f'Found Tuner: {isdbs_tuner.device_path}')
 
@@ -148,8 +168,13 @@ def main(
                 print(f'Tuner: {tuner.device_path}')
                 try:
                     # 録画時間: 20 秒 (BS・CS110 の SI 送出間隔は最大 10 秒周期なので 20 秒で十分)
-                    tuner.output_recisdb_log = output_recisdb_log
-                    ts_stream_data = tuner.tune(channel, recording_time=20)
+                    start_time = time.time()
+                    try:
+                        tuner.output_recisdb_log = output_recisdb_log
+                        ts_stream_data = tuner.tune(channel, recording_time=20)
+                    finally:
+                        print(f'Tuning time: {time.time() - start_time:.2f} seconds')
+                    # トランスポートストリームとサービスの情報を解析
                     ts_infos = TransportStreamAnalyzer(ts_stream_data, channel).analyze()
                     if channel.startswith('BS'):
                         bs_ts_infos.extend(ts_infos)
@@ -192,7 +217,7 @@ def main(
     EDCBChSet5TxtFormatter(Path('ChSet5.txt'), terrestrial_ts_infos, bs_ts_infos, cs_ts_infos).save()
 
     print(Rule(characters='=', style=Style(color='#E33157')))
-    print(f'Finished in {time.time() - start_time:.2f} seconds.')
+    print(f'Finished in {time.time() - scan_start_time:.2f} seconds.')
     print(Rule(characters='=', style=Style(color='#E33157')))
 
 
