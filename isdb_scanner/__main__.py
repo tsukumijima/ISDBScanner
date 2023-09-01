@@ -107,7 +107,7 @@ def main(
 
         # 地上波のチャンネルスキャンを実行 (13ch - 62ch)
         ## 地上波のうち 53ch - 62ch はすでに廃止されているが、依然一部ケーブルテレビのコミュニティチャンネル (自主放送) で利用されている
-        terrestrial_ts_infos: list[TransportStreamInfo] = []
+        tr_ts_infos: list[TransportStreamInfo] = []
         for channel in scan_terrestrial_physical_channels:
             scanned_channel_count += 1
             progress.update(task, completed=scanned_channel_count)
@@ -130,7 +130,7 @@ def main(
                             print(f'Tuning time: {time.time() - start_time:.2f} seconds')
                         # トランスポートストリームとサービスの情報を解析
                         ts_infos = TransportStreamAnalyzer(ts_stream_data, channel).analyze()
-                        terrestrial_ts_infos.extend(ts_infos)
+                        tr_ts_infos.extend(ts_infos)
                         for ts_info in ts_infos:
                             print(f'[green]Transport Stream[/green]: {ts_info}')
                             for service_info in ts_info.services:
@@ -162,7 +162,7 @@ def main(
 
         # 同一 TSID を持つ物理チャンネルをグループ化
         tsid_grouped_physical_channels: dict[int, list[TransportStreamInfo]] = {}
-        for ts_info in terrestrial_ts_infos:
+        for ts_info in tr_ts_infos:
             if ts_info.transport_stream_id not in tsid_grouped_physical_channels:
                 tsid_grouped_physical_channels[ts_info.transport_stream_id] = []
             tsid_grouped_physical_channels[ts_info.transport_stream_id].append(ts_info)
@@ -203,12 +203,12 @@ def main(
             for physical_channel, signal_level in signal_levels.items():
                 ts_info = next(ts_info for ts_info in ts_infos if ts_info.physical_channel == physical_channel)
                 if signal_level != max_signal_level:
-                    terrestrial_ts_infos.remove(ts_info)
+                    tr_ts_infos.remove(ts_info)
                 else:
                     print(f'[green]Selected Physical Channel: {ts_info.physical_channel} | Signal Level: {signal_level:.2f} dB[/green]')
 
         # 物理チャンネル順にソート
-        terrestrial_ts_infos = sorted(terrestrial_ts_infos, key=lambda x: x.physical_channel)
+        tr_ts_infos = sorted(tr_ts_infos, key=lambda x: x.physical_channel)
 
         # ***** BS・CS110 のチャンネルスキャン *****
 
@@ -299,12 +299,12 @@ def main(
     available_multi_tuners = [tuner for tuner in ISDBTuner.getAvailableMultiTuners() if tuner not in black_list_tuners]
 
     # チャンネルスキャン結果を様々なフォーマットで保存
-    JSONFormatter(output / 'Channels.json', terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
-    EDCBChSet4TxtFormatter(output / 'EDCB-Wine/BonDriver_mirakc.ChSet4.txt', terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
-    EDCBChSet4TxtFormatter(output / 'EDCB-Wine/BonDriver_mirakc_T.ChSet4.txt', terrestrial_ts_infos, [], [], exclude_pay_tv).save()
-    EDCBChSet4TxtFormatter(output / 'EDCB-Wine/BonDriver_mirakc_S.ChSet4.txt', [], bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
-    EDCBChSet5TxtFormatter(output / 'EDCB-Wine/ChSet5.txt', terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
-    MirakurunChannelsYmlFormatter(output / 'Mirakurun/channels.yml', terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
+    JSONFormatter(output / 'Channels.json', tr_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
+    EDCBChSet4TxtFormatter(output / 'EDCB-Wine/BonDriver_mirakc(BonDriver_mirakc).ChSet4.txt', tr_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
+    EDCBChSet4TxtFormatter(output / 'EDCB-Wine/BonDriver_mirakc_T(BonDriver_mirakc).ChSet4.txt', tr_ts_infos, [], [], exclude_pay_tv).save()
+    EDCBChSet4TxtFormatter(output / 'EDCB-Wine/BonDriver_mirakc_S(BonDriver_mirakc).ChSet4.txt', [], bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
+    EDCBChSet5TxtFormatter(output / 'EDCB-Wine/ChSet5.txt', tr_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
+    MirakurunChannelsYmlFormatter(output / 'Mirakurun/channels.yml', tr_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
     MirakurunTunersYmlFormatter(output / 'Mirakurun/tuners.yml', available_isdbt_tuners, available_isdbs_tuners, available_multi_tuners).save()
 
     print(Rule(characters='=', style=Style(color='#E33157')))
