@@ -141,5 +141,4 @@ cython_debug/
 # ignore .gitkeep
 !.gitkeep
 
-*.json
-*.txt
+scanned_channels/

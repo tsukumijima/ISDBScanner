@@ -260,7 +260,7 @@ class TransportStreamAnalyzer(TransportStreamFile):
             '〜': '～',
         })
 
-        return string.translate(str.maketrans(merged_table))
+        return string.translate(str.maketrans(merged_table))  # type: ignore
 
 
 class TransportStreamAnalyzeError(Exception):
