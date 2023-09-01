@@ -1,4 +1,6 @@
 
+import subprocess
+import sys
 import time
 import typer
 from pathlib import Path
@@ -41,6 +43,20 @@ def main(
         style = Style(color='#E33157'),
         align = 'center',
     ))
+
+    # recisdb の実行ファイルがインストールされているか確認
+    if subprocess.run(['/bin/bash', '-c', 'type recisdb'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
+        print('[red]recisdb not found.[/red]')
+        print('[red]Please install recisdb and try again.[/red]')
+        print(Rule(characters='=', style=Style(color='#E33157')))
+        return
+
+    # 実行環境が Linux か確認
+    if sys.platform != 'linux':
+        print('[red]ISDBScanner only supports Linux.[/red]')
+        print('[red]Please run this tool on Linux.[/red]')
+        print(Rule(characters='=', style=Style(color='#E33157')))
+        return
 
     scan_start_time = time.time()
 
