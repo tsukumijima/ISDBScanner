@@ -26,10 +26,11 @@ from isdb_scanner.tuner import TunerTuningError
 
 app = typer.Typer()
 
-@app.command(help='ISDBScanner: Scans Japanese TV broadcast channels (ISDB-T/ISDB-S) and outputs results in various formats')
+@app.command(help='ISDBScanner: Scans Japanese TV broadcast channels (ISDB-T/ISDB-S) and outputs results in various formats (depends on recisdb)')
 def main(
+    output: Path = typer.Argument(Path('.'), help='Output scan results to the specified directory.'),
     exclude_pay_tv: bool = typer.Option(False, help='Exclude pay-TV channels from scan results and include only free-to-air terrestrial and BS channels.'),
-    output_recisdb_log: bool = typer.Option(False, help='Output recisdb log to stdout.'),
+    output_recisdb_log: bool = typer.Option(False, help='Output recisdb log to stderr.'),
 ):
 
     print(Rule(
@@ -266,12 +267,17 @@ def main(
 
         progress.update(task, completed=total_channel_count)
 
+    # 出力先ディレクトリがなければ作成
+    # 事前に絶対パスに変換しておく
+    output = output.resolve()
+    output.mkdir(parents=True, exist_ok=True)
+
     # チャンネルスキャン結果を様々なフォーマットで保存
-    JSONFormatter(Path('Channels.json'), terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
-    EDCBChSet4TxtFormatter(Path('BonDriver_mirakc.ChSet4.txt'), terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
-    EDCBChSet4TxtFormatter(Path('BonDriver_mirakc_T.ChSet4.txt'), terrestrial_ts_infos, [], [], exclude_pay_tv).save()
-    EDCBChSet4TxtFormatter(Path('BonDriver_mirakc_S.ChSet4.txt'), [], bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
-    EDCBChSet5TxtFormatter(Path('ChSet5.txt'), terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
+    JSONFormatter(output / 'Channels.json', terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
+    EDCBChSet4TxtFormatter(output / 'BonDriver_mirakc.ChSet4.txt', terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
+    EDCBChSet4TxtFormatter(output / 'BonDriver_mirakc_T.ChSet4.txt', terrestrial_ts_infos, [], [], exclude_pay_tv).save()
+    EDCBChSet4TxtFormatter(output / 'BonDriver_mirakc_S.ChSet4.txt', [], bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
+    EDCBChSet5TxtFormatter(output / 'ChSet5.txt', terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
 
     print(Rule(characters='=', style=Style(color='#E33157')))
     print(f'Finished in {time.time() - scan_start_time:.2f} seconds.')
