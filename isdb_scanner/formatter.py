@@ -3,6 +3,8 @@ import csv
 import json
 from io import StringIO
 from pathlib import Path
+from ruamel.yaml import YAML
+from typing import TypedDict
 
 from isdb_scanner.constants import TransportStreamInfo
 from isdb_scanner.constants import TransportStreamInfoList
@@ -246,3 +248,57 @@ class EDCBChSet5TxtFormatter(BaseFormatter):
         # メモリ上に保存した TSV を文字列として取得して返す
         ## EDCB は UTF-8 with BOM でないと受け付けないため、先頭に BOM を付与する
         return '\ufeff' + string_io.getvalue()
+
+
+class MirakurunChannel(TypedDict):
+    name: str
+    type: str
+    channel: str
+    isDisabled: bool
+
+
+class MirakurunChannelsYmlFormatter(BaseFormatter):
+    """
+    スキャン解析結果である TS 情報を Mirakurun のチャンネル設定ファイルとして保存するフォーマッター
+    """
+
+
+    def format(self) -> str:
+
+        # 各 TS 情報を物理チャンネル昇順でソートして結合
+        ## この時点で処理対象が地上波チューナーなら BS/CS の TS 情報、衛星チューナーなら地上波の TS 情報として空のリストが渡されているはず
+        terrestrial_ts_infos = sorted(self._terrestrial_ts_infos, key=lambda x: x.physical_channel)
+        bs_ts_infos = sorted(self._bs_ts_infos, key=lambda x: x.physical_channel)
+        cs_ts_infos = sorted(self._cs_ts_infos, key=lambda x: x.physical_channel)
+        ts_infos = terrestrial_ts_infos + bs_ts_infos + cs_ts_infos
+
+        # Mirakurun のチャンネル設定ファイル用のデータ構造に変換
+        mirakurun_channels: list[MirakurunChannel] = []
+        for ts_info in ts_infos:
+            if 0x7880 <= ts_info.network_id <= 0x7FE8:
+                mirakurun_name = ts_info.network_name
+                mirakurun_type = 'GR'
+                mirakurun_channel = ts_info.physical_channel.replace('T', '')  # T13 -> 13
+            else:
+                mirakurun_name = ts_info.physical_channel
+                mirakurun_type = 'BS' if ts_info.network_id == 4 else 'CS'
+                mirakurun_channel = ts_info.physical_channel.replace('/TS', '_')  # BS23/TS3 -> BS23_3
+            channel: MirakurunChannel = {
+                'name': mirakurun_name,
+                'type': mirakurun_type,
+                'channel': mirakurun_channel,
+                'isDisabled': False,
+            }
+            mirakurun_channels.append(channel)
+
+        # YAML に変換
+        string_io = StringIO()
+        yaml = YAML()
+        yaml.default_flow_style = False
+        yaml.dump(mirakurun_channels, string_io)
+
+        # StringIO の先頭にシークする
+        string_io.seek(0)
+
+        # メモリ上に保存した YAML を文字列として取得して返す
+        return string_io.getvalue()
