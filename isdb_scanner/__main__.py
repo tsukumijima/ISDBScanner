@@ -135,9 +135,6 @@ def main(
                 print('[yellow]Channel may not be received in your area. Skipping...[/yellow]')
                 continue
 
-        # 物理チャンネル順にソート
-        terrestrial_ts_infos = sorted(terrestrial_ts_infos, key=lambda x: x.physical_channel)
-
         # 地上波で同一チャンネルが重複して検出された場合の処理
         ## 居住地域によっては、複数の中継所の電波が受信できるなどの理由で、同一チャンネルが複数の物理チャンネルで受信できる場合がある
         ## 同一チャンネルが複数の物理チャンネルから受信できると誤動作の要因になるため、TSID が一致する物理チャンネルを集計し、
@@ -190,6 +187,9 @@ def main(
                     terrestrial_ts_infos.remove(ts_info)
                 else:
                     print(f'[green]Selected Physical Channel: {ts_info.physical_channel} | Signal Level: {signal_level:.2f} dB[/green]')
+
+        # 物理チャンネル順にソート
+        terrestrial_ts_infos = sorted(terrestrial_ts_infos, key=lambda x: x.physical_channel)
 
         # ***** BS・CS110 のチャンネルスキャン *****
 
