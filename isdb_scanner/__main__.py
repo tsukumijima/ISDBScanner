@@ -44,6 +44,10 @@ def main(
 
     scan_start_time = time.time()
 
+    # チューナーのブラックリスト
+    ## TunerOpeningError が発生した場合に、そのチューナーをブラックリストに追加する
+    black_list_tuners: list[ISDBTuner] = []
+
     # トータルでスキャンする必要がある物理チャンネル数
     ## 13ch - 62ch + BS01_0 (BS) + CS02 (CS1) + CS04 (CS2)
     ## 地上波はフルスキャン、衛星放送はそれぞれのネットワークごとの最初の物理チャンネルのみをスキャン
@@ -84,10 +88,6 @@ def main(
             progress.update(task, completed=len(scan_terrestrial_physical_channels))
         for isdbt_tuner in isdbt_tuners:
             print(f'Found Tuner: {isdbt_tuner.name} ({isdbt_tuner.device_path})')
-
-        # チューナーのブラックリスト
-        ## TunerOpeningError が発生した場合に、そのチューナーをブラックリストに追加する
-        black_list_tuners: list[ISDBTuner] = []
 
         # 地上波のチャンネルスキャンを実行 (13ch - 62ch)
         ## 地上波のうち 53ch - 62ch はすでに廃止されているが、依然一部ケーブルテレビのコミュニティチャンネル (自主放送) で利用されている
@@ -276,6 +276,12 @@ def main(
     (output / 'EDCB-Wine').mkdir(parents=True, exist_ok=True)
     (output / 'Mirakurun').mkdir(parents=True, exist_ok=True)
 
+    # ブラックリストに入ってない ISDB-T 専用チューナー・ISDB-S 専用チューナー・ISDB-T/S 共用チューナーを取得
+    ## このツールが利用されるシチュエーション上、ブラックリストに入っているチューナーは何らかの要因で故障していて利用不可だとみなす (PC 再起動で直る可能性もある)
+    available_isdbt_tuners = [tuner for tuner in ISDBTuner.getAvailableISDBTOnlyTuners() if tuner not in black_list_tuners]
+    available_isdbs_tuners = [tuner for tuner in ISDBTuner.getAvailableISDBSOnlyTuners() if tuner not in black_list_tuners]
+    available_multi_tuners = [tuner for tuner in ISDBTuner.getAvailableMultiTuners() if tuner not in black_list_tuners]
+
     # チャンネルスキャン結果を様々なフォーマットで保存
     JSONFormatter(output / 'Channels.json', terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
     EDCBChSet4TxtFormatter(output / 'EDCB-Wine/BonDriver_mirakc.ChSet4.txt', terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
@@ -283,7 +289,7 @@ def main(
     EDCBChSet4TxtFormatter(output / 'EDCB-Wine/BonDriver_mirakc_S.ChSet4.txt', [], bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
     EDCBChSet5TxtFormatter(output / 'EDCB-Wine/ChSet5.txt', terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
     MirakurunChannelsYmlFormatter(output / 'Mirakurun/channels.yml', terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
-    MirakurunTunersYmlFormatter(output / 'Mirakurun/tuners.yml', isdbt_tuners, isdbs_tuners).save()
+    MirakurunTunersYmlFormatter(output / 'Mirakurun/tuners.yml', available_isdbt_tuners, available_isdbs_tuners, available_multi_tuners).save()
 
     print(Rule(characters='=', style=Style(color='#E33157')))
     print(f'Finished in {time.time() - scan_start_time:.2f} seconds.')

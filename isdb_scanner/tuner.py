@@ -302,9 +302,22 @@ class ISDBTuner:
             list[ISDBTuner]: 利用可能な ISDB-T チューナーのリスト
         """
 
+        return ISDBTuner.getAvailableISDBTOnlyTuners() + ISDBTuner.getAvailableMultiTuners()
+
+
+    @staticmethod
+    def getAvailableISDBTOnlyTuners() -> list[ISDBTuner]:
+        """
+        利用可能な ISDB-T チューナーのリストを取得する
+        ISDB-T 専用チューナーのみが含まれる
+
+        Returns:
+            list[ISDBTuner]: 利用可能な ISDB-T 専用チューナーのリスト
+        """
+
         # 存在するデバイスのパスを取得し、ISDBTuner を初期化してリストに追加
         tuners: list[ISDBTuner] = []
-        for device_path in [*ISDBT_TUNER_DEVICE_PATHS, *ISDB_MULTI_TUNER_DEVICE_PATHS]:
+        for device_path in ISDBT_TUNER_DEVICE_PATHS:
             device_path = Path(device_path)
             if not device_path.exists():
                 continue
@@ -323,9 +336,42 @@ class ISDBTuner:
             list[ISDBTuner]: 利用可能な ISDB-S チューナーのリスト
         """
 
+        return ISDBTuner.getAvailableISDBSOnlyTuners() + ISDBTuner.getAvailableMultiTuners()
+
+
+    @staticmethod
+    def getAvailableISDBSOnlyTuners() -> list[ISDBTuner]:
+        """
+        利用可能な ISDB-S チューナーのリストを取得する
+        ISDB-S 専用チューナーのみが含まれる
+
+        Returns:
+            list[ISDBTuner]: 利用可能な ISDB-S 専用チューナーのリスト
+        """
+
         # 存在するデバイスのパスを取得し、ISDBTuner を初期化してリストに追加
         tuners: list[ISDBTuner] = []
-        for device_path in [*ISDBS_TUNER_DEVICE_PATHS, *ISDB_MULTI_TUNER_DEVICE_PATHS]:
+        for device_path in ISDBS_TUNER_DEVICE_PATHS:
+            device_path = Path(device_path)
+            if not device_path.exists():
+                continue
+            tuners.append(ISDBTuner(device_path))
+
+        return tuners
+
+
+    @staticmethod
+    def getAvailableMultiTuners() -> list[ISDBTuner]:
+        """
+        利用可能な ISDB-T/S 共用チューナーのリストを取得する
+
+        Returns:
+            list[ISDBTuner]: 利用可能な ISDB-T/S 共用チューナーのリスト
+        """
+
+        # 存在するデバイスのパスを取得し、ISDBTuner を初期化してリストに追加
+        tuners: list[ISDBTuner] = []
+        for device_path in ISDB_MULTI_TUNER_DEVICE_PATHS:
             device_path = Path(device_path)
             if not device_path.exists():
                 continue

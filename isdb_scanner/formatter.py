@@ -318,17 +318,24 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
     """
 
 
-    def __init__(self, save_file_path: Path, isdbt_tuners: list[ISDBTuner], isdbs_tuners: list[ISDBTuner]) -> None:
+    def __init__(self,
+        save_file_path: Path,
+        isdbt_tuners: list[ISDBTuner],
+        isdbs_tuners: list[ISDBTuner],
+        multi_tuners: list[ISDBTuner],
+    ) -> None:
         """
         Args:
             save_file_path (Path): 保存先のファイルパス
-            isdbt_tuners (list[ISDBTuner]): ISDB-T チューナーのリスト
-            isdbs_tuners (list[ISDBTuner]): ISDB-S チューナーのリスト
+            isdbt_tuners (list[ISDBTuner]): ISDB-T 専用チューナーのリスト
+            isdbs_tuners (list[ISDBTuner]): ISDB-S 専用チューナーのリスト
+            multi_tuners (list[ISDBTuner]): ISDB-T/S 共用チューナーのリスト
         """
 
-        super().__init__(save_file_path, [], [], [])
+        self._save_file_path = save_file_path
         self._isdbt_tuners = isdbt_tuners
         self._isdbs_tuners = isdbs_tuners
+        self._multi_tuners = multi_tuners
 
 
     def format(self) -> str:
@@ -348,6 +355,14 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
                 'name': isdbs_tuner.name,
                 'types': ['BS', 'CS'],
                 'command': f'recisdb tune --device {isdbs_tuner.device_path} --channel <channel> -',
+                'isDisabled': False,
+            }
+            mirakurun_tuners.append(tuner)
+        for multi_tuner in self._multi_tuners:
+            tuner: MirakurunTuner = {
+                'name': multi_tuner.name,
+                'types': ['GR', 'BS', 'CS'],
+                'command': f'recisdb tune --device {multi_tuner.device_path} --channel <channel> -',
                 'isDisabled': False,
             }
             mirakurun_tuners.append(tuner)
