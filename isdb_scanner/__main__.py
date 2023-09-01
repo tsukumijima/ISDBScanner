@@ -20,6 +20,7 @@ from isdb_scanner.constants import TransportStreamInfo
 from isdb_scanner.formatter import EDCBChSet4TxtFormatter
 from isdb_scanner.formatter import EDCBChSet5TxtFormatter
 from isdb_scanner.formatter import JSONFormatter
+from isdb_scanner.formatter import MirakcConfigYmlFormatter
 from isdb_scanner.formatter import MirakurunChannelsYmlFormatter
 from isdb_scanner.formatter import MirakurunTunersYmlFormatter
 from isdb_scanner.tuner import ISDBTuner
@@ -291,6 +292,7 @@ def main(
     output.mkdir(parents=True, exist_ok=True)
     (output / 'EDCB-Wine').mkdir(parents=True, exist_ok=True)
     (output / 'Mirakurun').mkdir(parents=True, exist_ok=True)
+    (output / 'mirakc').mkdir(parents=True, exist_ok=True)
 
     # ブラックリストに入ってない ISDB-T 専用チューナー・ISDB-S 専用チューナー・ISDB-T/S 共用チューナーを取得
     ## このツールが利用されるシチュエーション上、ブラックリストに入っているチューナーは何らかの要因で故障していて利用不可だとみなす (PC 再起動で直る可能性もある)
@@ -298,7 +300,7 @@ def main(
     available_isdbs_tuners = [tuner for tuner in ISDBTuner.getAvailableISDBSOnlyTuners() if tuner not in black_list_tuners]
     available_multi_tuners = [tuner for tuner in ISDBTuner.getAvailableMultiTuners() if tuner not in black_list_tuners]
 
-    # チャンネルスキャン結果を様々なフォーマットで保存
+    # チャンネルスキャン結果 (&一部のフォーマットでは利用可能なチューナー情報も) を様々なフォーマットで保存
     JSONFormatter(output / 'Channels.json', tr_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
     EDCBChSet4TxtFormatter(output / 'EDCB-Wine/BonDriver_mirakc(BonDriver_mirakc).ChSet4.txt', tr_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
     EDCBChSet4TxtFormatter(output / 'EDCB-Wine/BonDriver_mirakc_T(BonDriver_mirakc).ChSet4.txt', tr_ts_infos, [], [], exclude_pay_tv).save()
@@ -306,6 +308,12 @@ def main(
     EDCBChSet5TxtFormatter(output / 'EDCB-Wine/ChSet5.txt', tr_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
     MirakurunChannelsYmlFormatter(output / 'Mirakurun/channels.yml', tr_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
     MirakurunTunersYmlFormatter(output / 'Mirakurun/tuners.yml', available_isdbt_tuners, available_isdbs_tuners, available_multi_tuners).save()
+    MirakcConfigYmlFormatter(
+        output / 'mirakc/config.yml',
+        available_isdbt_tuners, available_isdbs_tuners, available_multi_tuners,
+        tr_ts_infos, bs_ts_infos, cs_ts_infos,
+        exclude_pay_tv,
+    ).save()
 
     print(Rule(characters='=', style=Style(color='#E33157')))
     print(f'Finished in {time.time() - scan_start_time:.2f} seconds.')

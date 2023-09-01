@@ -4,7 +4,7 @@ import json
 from io import StringIO
 from pathlib import Path
 from ruamel.yaml import YAML
-from typing import TypedDict
+from typing import cast, TypedDict
 
 from isdb_scanner.constants import TransportStreamInfo
 from isdb_scanner.constants import TransportStreamInfoList
@@ -37,6 +37,7 @@ class BaseFormatter:
         self._terrestrial_ts_infos = terrestrial_ts_infos
         self._bs_ts_infos = bs_ts_infos
         self._cs_ts_infos = cs_ts_infos
+        self._exclude_pay_tv = exclude_pay_tv
 
         # 与えられた TS 情報から有料放送サービスを除外
         ## 地上波は実運用上有料放送は存在しないが、念のため除外しておく
@@ -265,6 +266,12 @@ class MirakurunChannelsYmlFormatter(BaseFormatter):
 
 
     def format(self) -> str:
+        """
+        Mirakurun のチャンネル設定ファイルとしてフォーマットする
+
+        Returns:
+            str: フォーマットされた文字列
+        """
 
         # 各 TS 情報を物理チャンネル昇順でソートして結合
         ## この時点で処理対象が地上波チューナーなら BS/CS の TS 情報、衛星チューナーなら地上波の TS 情報として空のリストが渡されているはず
@@ -284,6 +291,12 @@ class MirakurunChannelsYmlFormatter(BaseFormatter):
                 mirakurun_name = ts_info.physical_channel
                 mirakurun_type = 'BS' if ts_info.network_id == 4 else 'CS'
                 mirakurun_channel = ts_info.physical_channel.replace('/TS', '_')  # BS23/TS3 -> BS23_3
+                # 有料放送を除外する場合で、TS 内のサービスが空 (=TS内に無料放送サービスが存在しない) ならチャンネル自体を登録しない
+                # (有料放送を除外する場合は、この時点ですでに各 TS 情報のサービス情報から有料放送が除外されている)
+                ## 正確には有料放送の TS に無料独立データ放送が含まれる場合もあるので (WOWOW など) 、それらも除外してから判定する
+                ## 独立データ放送の service_type は 0xC0 なので、それ以外のサービスが空かどうかで判定する
+                if self._exclude_pay_tv is True and len([service for service in ts_info.services if service.service_type != 0xC0]) == 0:
+                    continue
             channel: MirakurunChannel = {
                 'name': mirakurun_name,
                 'type': mirakurun_type,
@@ -339,6 +352,12 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
 
 
     def format(self) -> str:
+        """
+        Mirakurun のチューナー設定ファイルとしてフォーマットする
+
+        Returns:
+            str: フォーマットされた文字列
+        """
 
         # Mirakurun のチューナー設定ファイル用のデータ構造に変換
         mirakurun_tuners: list[MirakurunTuner] = []
@@ -372,6 +391,147 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
         yaml = YAML()
         yaml.default_flow_style = False
         yaml.dump(mirakurun_tuners, string_io)
+
+        # StringIO の先頭にシークする
+        string_io.seek(0)
+
+        # メモリ上に保存した YAML を文字列として取得して返す
+        return string_io.getvalue()
+
+
+class MirakcChannel(TypedDict):
+    name: str
+    type: str
+    channel: str
+    disabled: bool
+
+class MirakcTuner(TypedDict):
+    name: str
+    types: list[str]
+    command: str
+    disabled: bool
+
+
+class MirakcConfigYmlFormatter(BaseFormatter):
+    """
+    取得したチューナー情報とスキャン解析結果である TS 情報を mirakc の設定ファイルとして保存するフォーマッター
+    """
+
+
+    def __init__(self,
+        save_file_path: Path,
+        isdbt_tuners: list[ISDBTuner],
+        isdbs_tuners: list[ISDBTuner],
+        multi_tuners: list[ISDBTuner],
+        terrestrial_ts_infos: list[TransportStreamInfo],
+        bs_ts_infos: list[TransportStreamInfo],
+        cs_ts_infos: list[TransportStreamInfo],
+        exclude_pay_tv: bool = False,
+    ) -> None:
+        """
+        Args:
+            save_file_path (Path): 保存先のファイルパス
+            isdbt_tuners (list[ISDBTuner]): ISDB-T 専用チューナーのリスト
+            isdbs_tuners (list[ISDBTuner]): ISDB-S 専用チューナーのリスト
+            multi_tuners (list[ISDBTuner]): ISDB-T/S 共用チューナーのリスト
+            terrestrial_ts_infos (list[TransportStreamInfo]): スキャン結果の地上波の TS 情報
+            bs_ts_infos (list[TransportStreamInfo]): スキャン結果の BS の TS 情報
+            cs_ts_infos (list[TransportStreamInfo]): スキャン結果の CS の TS 情報
+            exclude_pay_tv (bool): 有料放送 (+ショップチャンネル&QVC) を除外し、地上波と BS 無料放送のみを保存するか
+        """
+
+        self._isdbt_tuners = isdbt_tuners
+        self._isdbs_tuners = isdbs_tuners
+        self._multi_tuners = multi_tuners
+        super().__init__(save_file_path, terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv)
+
+
+    def format(self) -> str:
+        """
+        mirakc の設定ファイルとしてフォーマットする
+
+        Returns:
+            str: フォーマットされた文字列
+        """
+
+        # ひな形の設定データ
+        mirakc_config = {
+            'server': {
+                'addrs': [
+                    {'http': '0.0.0.0:40772'},
+                ],
+            },
+            'epg': {
+                'cache-dir': '/var/cache/mirakc/epg',
+            },
+            'channels': cast(list[MirakcChannel], []),
+            'tuners': cast(list[MirakcTuner], []),
+        }
+
+        # 各 TS 情報を物理チャンネル昇順でソートして結合
+        ## この時点で処理対象が地上波チューナーなら BS/CS の TS 情報、衛星チューナーなら地上波の TS 情報として空のリストが渡されているはず
+        terrestrial_ts_infos = sorted(self._terrestrial_ts_infos, key=lambda x: x.physical_channel)
+        bs_ts_infos = sorted(self._bs_ts_infos, key=lambda x: x.physical_channel)
+        cs_ts_infos = sorted(self._cs_ts_infos, key=lambda x: x.physical_channel)
+        ts_infos = terrestrial_ts_infos + bs_ts_infos + cs_ts_infos
+
+        # mirakc のチャンネル設定ファイル用のデータ構造に変換
+        mirakc_channels: list[MirakcChannel] = []
+        for ts_info in ts_infos:
+            if 0x7880 <= ts_info.network_id <= 0x7FE8:
+                mirakc_name = ts_info.network_name
+                mirakc_type = 'GR'
+                mirakc_channel = ts_info.physical_channel.replace('T', '')  # T13 -> 13
+            else:
+                mirakc_name = ts_info.physical_channel
+                mirakc_type = 'BS' if ts_info.network_id == 4 else 'CS'
+                mirakc_channel = ts_info.physical_channel.replace('/TS', '_')  # BS23/TS3 -> BS23_3
+                # 有料放送を除外する場合で、TS 内のサービスが空 (=TS内に無料放送サービスが存在しない) ならチャンネル自体を登録しない
+                # (有料放送を除外する場合は、この時点ですでに各 TS 情報のサービス情報から有料放送が除外されている)
+                ## 正確には有料放送の TS に無料独立データ放送が含まれる場合もあるので (WOWOW など) 、それらも除外してから判定する
+                ## 独立データ放送の service_type は 0xC0 なので、それ以外のサービスが空かどうかで判定する
+                if self._exclude_pay_tv is True and len([service for service in ts_info.services if service.service_type != 0xC0]) == 0:
+                    continue
+            channel: MirakcChannel = {
+                'name': mirakc_name,
+                'type': mirakc_type,
+                'channel': mirakc_channel,
+                'disabled': False,
+            }
+            mirakc_channels.append(channel)
+
+        # mirakc のチューナー設定ファイル用のデータ構造に変換
+        mirakc_tuners: list[MirakcTuner] = []
+        for isdbt_tuner in self._isdbt_tuners:
+            tuner: MirakcTuner = {
+                'name': isdbt_tuner.name,
+                'types': ['GR'],
+                'command': f'recisdb tune --device {isdbt_tuner.device_path} --channel ' + '{{{channel}}} -',
+                'disabled': False,
+            }
+            mirakc_tuners.append(tuner)
+        for isdbs_tuner in self._isdbs_tuners:
+            tuner: MirakcTuner = {
+                'name': isdbs_tuner.name,
+                'types': ['BS', 'CS'],
+                'command': f'recisdb tune --device {isdbs_tuner.device_path} --channel ' + '{{{channel}}} -',
+                'disabled': False,
+            }
+            mirakc_tuners.append(tuner)
+        for multi_tuner in self._multi_tuners:
+            tuner: MirakcTuner = {
+                'name': multi_tuner.name,
+                'types': ['GR', 'BS', 'CS'],
+                'command': f'recisdb tune --device {multi_tuner.device_path} --channel ' + '{{{channel}}} -',
+                'disabled': False,
+            }
+            mirakc_tuners.append(tuner)
+
+        # YAML に変換
+        string_io = StringIO()
+        yaml = YAML()
+        yaml.default_flow_style = False
+        yaml.dump(mirakc_config, string_io)
 
         # StringIO の先頭にシークする
         string_io.seek(0)
