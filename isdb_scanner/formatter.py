@@ -8,6 +8,7 @@ from typing import TypedDict
 
 from isdb_scanner.constants import TransportStreamInfo
 from isdb_scanner.constants import TransportStreamInfoList
+from isdb_scanner.tuner import ISDBTuner
 
 
 class BaseFormatter:
@@ -296,6 +297,66 @@ class MirakurunChannelsYmlFormatter(BaseFormatter):
         yaml = YAML()
         yaml.default_flow_style = False
         yaml.dump(mirakurun_channels, string_io)
+
+        # StringIO の先頭にシークする
+        string_io.seek(0)
+
+        # メモリ上に保存した YAML を文字列として取得して返す
+        return string_io.getvalue()
+
+
+class MirakurunTuner(TypedDict):
+    name: str
+    types: list[str]
+    command: str
+    isDisabled: bool
+
+
+class MirakurunTunersYmlFormatter(BaseFormatter):
+    """
+    取得したチューナー情報を Mirakurun のチューナー設定ファイルとして保存するフォーマッター
+    """
+
+
+    def __init__(self, save_file_path: Path, isdbt_tuners: list[ISDBTuner], isdbs_tuners: list[ISDBTuner]) -> None:
+        """
+        Args:
+            save_file_path (Path): 保存先のファイルパス
+            isdbt_tuners (list[ISDBTuner]): ISDB-T チューナーのリスト
+            isdbs_tuners (list[ISDBTuner]): ISDB-S チューナーのリスト
+        """
+
+        super().__init__(save_file_path, [], [], [])
+        self._isdbt_tuners = isdbt_tuners
+        self._isdbs_tuners = isdbs_tuners
+
+
+    def format(self) -> str:
+
+        # Mirakurun のチューナー設定ファイル用のデータ構造に変換
+        mirakurun_tuners: list[MirakurunTuner] = []
+        for isdbt_tuner in self._isdbt_tuners:
+            tuner: MirakurunTuner = {
+                'name': isdbt_tuner.name,
+                'types': ['GR'],
+                'command': f'recisdb tune --device {isdbt_tuner.device_path} --channel <channel> -',
+                'isDisabled': False,
+            }
+            mirakurun_tuners.append(tuner)
+        for isdbs_tuner in self._isdbs_tuners:
+            tuner: MirakurunTuner = {
+                'name': isdbs_tuner.name,
+                'types': ['BS', 'CS'],
+                'command': f'recisdb tune --device {isdbs_tuner.device_path} --channel <channel> -',
+                'isDisabled': False,
+            }
+            mirakurun_tuners.append(tuner)
+
+        # YAML に変換
+        string_io = StringIO()
+        yaml = YAML()
+        yaml.default_flow_style = False
+        yaml.dump(mirakurun_tuners, string_io)
 
         # StringIO の先頭にシークする
         string_io.seek(0)

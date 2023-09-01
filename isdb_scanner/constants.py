@@ -80,7 +80,7 @@ class TransportStreamInfoList(RootModel[list[TransportStreamInfo]]):
 # ref: https://github.com/tsukumijima/px4_drv
 
 # ISDB-T 専用のチューナーデバイスのパス (px4_drv)
-# PLEX PX-W3PE4/PX-W3PE5/PX-W3U4/PX-Q3PE4/PX-Q3PE5/PX-Q3U4 用 (全体で最大8チューナーまで想定)
+# PLEX PX-W3U4/PX-Q3U4/PX-W3PE4/PX-Q3PE4/PX-W3PE5/PX-Q3PE5 用 (全体で最大8チューナーまで想定)
 # PLEX PX-S1UR は最大8台接続まで想定
 ISDBT_TUNER_DEVICE_PATHS = [
     '/dev/px4video2',
@@ -110,7 +110,7 @@ ISDBT_TUNER_DEVICE_PATHS = [
 ]
 
 # ISDB-S 専用のチューナーデバイスのパス (px4_drv)
-# PLEX PX-W3PE4/PX-W3PE5/PX-W3U4/PX-Q3PE4/PX-Q3PE5/PX-Q3U4 用 (全体で最大8チューナーまで想定)
+# PLEX PX-W3U4/PX-Q3U4/PX-W3PE4/PX-Q3PE4/PX-W3PE5/PX-Q3PE5 用 (全体で最大8チューナーまで想定)
 ISDBS_TUNER_DEVICE_PATHS = [
     '/dev/px4video0',
     '/dev/px4video1',

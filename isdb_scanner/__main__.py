@@ -19,6 +19,7 @@ from isdb_scanner.formatter import EDCBChSet4TxtFormatter
 from isdb_scanner.formatter import EDCBChSet5TxtFormatter
 from isdb_scanner.formatter import JSONFormatter
 from isdb_scanner.formatter import MirakurunChannelsYmlFormatter
+from isdb_scanner.formatter import MirakurunTunersYmlFormatter
 from isdb_scanner.tuner import ISDBTuner
 from isdb_scanner.tuner import TunerOpeningError
 from isdb_scanner.tuner import TunerOutputError
@@ -82,7 +83,7 @@ def main(
             # プログレスバーはスキャンする予定だった地上波チャンネル分だけ進める
             progress.update(task, completed=len(scan_terrestrial_physical_channels))
         for isdbt_tuner in isdbt_tuners:
-            print(f'Found Tuner: {isdbt_tuner.device_path}')
+            print(f'Found Tuner: {isdbt_tuner.name} ({isdbt_tuner.device_path})')
 
         # チューナーのブラックリスト
         ## TunerOpeningError が発生した場合に、そのチューナーをブラックリストに追加する
@@ -102,7 +103,7 @@ def main(
                     # チューナーの起動と TS 解析を実行
                     print(Rule(characters='-', style=Style(color='#E33157')))
                     print(f'Channel: [bright_blue]Terrestrial - {channel.replace("T", "")}ch[/bright_blue]')
-                    print(f'Tuner: {tuner.device_path}')
+                    print(f'Tuner: {tuner.name} ({tuner.device_path})')
                     try:
                         # 録画時間: 2.25 秒 (地上波の SI 送出間隔は最大 2 秒周期)
                         start_time = time.time()
@@ -208,7 +209,7 @@ def main(
             # プログレスバーはスキャンする予定だった BS・CS110 チャンネル分だけ進める
             progress.update(task, completed=len(scan_terrestrial_physical_channels) + len(scan_satellite_physical_channels))
         for isdbs_tuner in isdbs_tuners:
-            print(f'Found Tuner: {isdbs_tuner.device_path}')
+            print(f'Found Tuner: {isdbs_tuner.name} ({isdbs_tuner.device_path})')
 
         # BS・CS1・CS2 のチャンネルスキャンを実行
         bs_ts_infos: list[TransportStreamInfo] = []
@@ -224,7 +225,7 @@ def main(
                 channel_type = 'BS' if channel.startswith('BS') else ('CS1' if channel.startswith('CS02') else 'CS2')
                 print(Rule(characters='-', style=Style(color='#E33157')))
                 print(f'Channel: [bright_blue]{channel_type} (All channels)[/bright_blue]')
-                print(f'Tuner: {tuner.device_path}')
+                print(f'Tuner: {tuner.name} ({tuner.device_path})')
                 try:
                     # 録画時間: 10.25 秒 (BS・CS110 の SI 送出間隔は最大 10 秒周期)
                     start_time = time.time()
@@ -272,15 +273,17 @@ def main(
     # 事前に絶対パスに変換しておく
     output = output.resolve()
     output.mkdir(parents=True, exist_ok=True)
-    (output / 'EDCB').mkdir(parents=True, exist_ok=True)
+    (output / 'EDCB-Wine').mkdir(parents=True, exist_ok=True)
+    (output / 'Mirakurun').mkdir(parents=True, exist_ok=True)
 
     # チャンネルスキャン結果を様々なフォーマットで保存
     JSONFormatter(output / 'Channels.json', terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
-    EDCBChSet4TxtFormatter(output / 'EDCB/BonDriver_mirakc.ChSet4.txt', terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
-    EDCBChSet4TxtFormatter(output / 'EDCB/BonDriver_mirakc_T.ChSet4.txt', terrestrial_ts_infos, [], [], exclude_pay_tv).save()
-    EDCBChSet4TxtFormatter(output / 'EDCB/BonDriver_mirakc_S.ChSet4.txt', [], bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
-    EDCBChSet5TxtFormatter(output / 'EDCB/ChSet5.txt', terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
+    EDCBChSet4TxtFormatter(output / 'EDCB-Wine/BonDriver_mirakc.ChSet4.txt', terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
+    EDCBChSet4TxtFormatter(output / 'EDCB-Wine/BonDriver_mirakc_T.ChSet4.txt', terrestrial_ts_infos, [], [], exclude_pay_tv).save()
+    EDCBChSet4TxtFormatter(output / 'EDCB-Wine/BonDriver_mirakc_S.ChSet4.txt', [], bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
+    EDCBChSet5TxtFormatter(output / 'EDCB-Wine/ChSet5.txt', terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
     MirakurunChannelsYmlFormatter(output / 'Mirakurun/channels.yml', terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
+    MirakurunTunersYmlFormatter(output / 'Mirakurun/tuners.yml', isdbt_tuners, isdbs_tuners).save()
 
     print(Rule(characters='=', style=Style(color='#E33157')))
     print(f'Finished in {time.time() - scan_start_time:.2f} seconds.')

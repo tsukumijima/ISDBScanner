@@ -9,6 +9,7 @@ import threading
 import time
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Literal
 
 from isdb_scanner.constants import (
     ISDBT_TUNER_DEVICE_PATHS,
@@ -32,6 +33,78 @@ class ISDBTuner:
 
         self.device_path = device_path
         self.output_recisdb_log = output_recisdb_log
+        self.type, self.name = self.__getTunerDeviceInfo()
+
+
+    def __getPX4VideoDeviceTypeAndIndex(self) -> tuple[Literal['Terrestrial', 'Satellite'], int]:
+        """
+        /dev/px4videoX の X の部分を取得して、チューナーの種類と番号を返す
+
+        Returns:
+            tuple[Literal['Terrestrial', 'Satellite'], int]: チューナーの種類と番号
+        """
+
+        # デバイスパスから数字部分を抽出
+        device_number = int(str(self.device_path).split('px4video')[-1])
+
+        # デバイスタイプとインデックスを自動判定
+        # ISDB-T: 2,3,6,7,10,11,14,15 ... (2個おき)
+        # ISDB-S: 0,1,4,5,8,9,12,13 ... (2個おき)
+        remainder = device_number % 4
+        if remainder in [0, 1]:
+            tuner_type = 'Satellite'
+            tuner_number = device_number // 4 * 2 + 1
+        elif remainder in [2, 3]:
+            tuner_type = 'Terrestrial'
+            tuner_number = (device_number - 2) // 4 * 2 + 1
+        else:
+            assert False, f'Unknown tuner device: {self.device_path}'
+
+        if remainder in [1, 3]:
+            tuner_number += 1
+
+        return tuner_type, tuner_number
+
+
+    def __getTunerDeviceInfo(self) -> tuple[Literal['Terrestrial', 'Satellite', 'Multi'], str]:
+        """
+        チューナーデバイスの種類と名前を取得する
+
+        Returns:
+            tuple[Literal['Terrestrial', 'Satellite', 'Multi'], str]: チューナーデバイスの種類と名前
+        """
+
+        # PLEX PX-W3U4/PX-Q3U4/PX-W3PE4/PX-Q3PE4/PX-W3PE5/PX-Q3PE5
+        if str(self.device_path).startswith('/dev/px4video'):
+            tuner_type, tuner_number = self.__getPX4VideoDeviceTypeAndIndex()
+            return (tuner_type, f'PLEX PX4/PX5 Series ({tuner_type}) #{tuner_number}')
+
+        # PLEX PX-S1UR
+        if str(self.device_path).startswith('/dev/pxs1urvideo'):
+            return 'Terrestrial', f'PLEX PX-S1UR #{int(str(self.device_path).split("pxs1urvideo")[-1]) + 1}'
+
+        # PLEX PX-M1UR
+        if str(self.device_path).startswith('/dev/pxm1urvideo'):
+            return 'Multi', f'PLEX PX-M1UR #{int(str(self.device_path).split("pxm1urvideo")[-1]) + 1}'
+
+        # PLEX PX-MLT5PE
+        if str(self.device_path).startswith('/dev/pxmlt5video'):
+            return 'Multi', f'PLEX PX-MLT5PE #{int(str(self.device_path).split("pxmlt5video")[-1]) + 1}'
+
+        # PLEX PX-MLT8PE
+        if str(self.device_path).startswith('/dev/pxmlt8video'):
+            return 'Multi', f'PLEX PX-MLT8PE #{int(str(self.device_path).split("pxmlt8video")[-1]) + 1}'
+
+        # e-better DTV02A-4TS-P
+        if str(self.device_path).startswith('/dev/isdb6014video'):
+            return 'Multi', f'e-better DTV02A-4TS-P #{int(str(self.device_path).split("isdb6014video")[-1]) + 1}'
+
+        # e-better DTV02A-1T1S-U
+        if str(self.device_path).startswith('/dev/isdb2056video'):
+            return 'Multi', f'e-better DTV02A-1T1S-U #{int(str(self.device_path).split("isdb2056video")[-1]) + 1}'
+
+        # ここには到達しないはず
+        assert False, f'Unknown tuner device: {self.device_path}'
 
 
     def tune(self, physical_channel: str, recording_time: float = 10.0, tune_timeout: float = 7.0) -> bytearray:
