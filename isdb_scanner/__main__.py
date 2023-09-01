@@ -138,7 +138,54 @@ def main(
         # 物理チャンネル順にソート
         terrestrial_ts_infos = sorted(terrestrial_ts_infos, key=lambda x: x.physical_channel)
 
-        # TODO: 重複するチャンネルが検出された場合の処理
+        # 地上波で同一チャンネルが重複して検出された場合の処理
+        ## 居住地域によっては、複数の中継所の電波が受信できるなどの理由で、同一チャンネルが複数の物理チャンネルで受信できる場合がある
+        ## 同一チャンネルが複数の物理チャンネルから受信できると誤動作の要因になるため、TSID が一致する物理チャンネルを集計し、
+        ## 次にどの物理チャンネルが一番信号レベルが高いかを判定して、その物理チャンネルのみを残す
+        ## (地上波の TSID は放送局ごとに全国で一意であるため、TSID が一致する物理チャンネルは同一チャンネルであることが保証される)
+
+        # 同一 TSID を持つ物理チャンネルをグループ化
+        tsid_grouped_physical_channels: dict[int, list[TransportStreamInfo]] = {}
+        for ts_info in terrestrial_ts_infos:
+            if ts_info.transport_stream_id not in tsid_grouped_physical_channels:
+                tsid_grouped_physical_channels[ts_info.transport_stream_id] = []
+            tsid_grouped_physical_channels[ts_info.transport_stream_id].append(ts_info)
+
+        # 同一 TSID を持つ物理チャンネルのうち、信号レベルが最も高い物理チャンネルのみを残す
+        for ts_infos in tsid_grouped_physical_channels.values():
+
+            # 同一 TSID を持つ物理チャンネルが1つだけ (正常) の場合は何もしない
+            if len(ts_infos) == 1:
+                continue
+
+            print(Rule(characters='-', style=Style(color='#E33157')))
+            print(f'[yellow]{ts_infos[0].network_name} (TSID: {ts_infos[0].transport_stream_id}) '
+                   'was detected redundantly across multiple physical channels.[/yellow]')
+            print('[yellow]Outputs only the physical channel with the highest signal level...[/yellow]')
+
+            # それぞれの物理チャンネルの信号レベルを計測
+            signal_levels: dict[TransportStreamInfo, float] = {}
+            for ts_info in ts_infos:
+                signal_levels[ts_info] = -999.9  # デフォルト値 (信号レベルを計測できなかった場合用)
+                for tuner in isdbt_tuners:
+                    # ブラックリストに登録されているチューナーはスキップ
+                    if tuner in black_list_tuners:
+                        continue
+                    # チューナーの起動と平均信号レベル取得を実行
+                    ## チューナーの起動失敗などで平均信号レベルが取得できなかった場合は None が返されるので、次のチューナーで試す
+                    result = tuner.getSignalLevelMean(ts_info.physical_channel)
+                    if result is None:
+                        continue
+                    signal_levels[ts_info] = result
+                    print(f'Physical Channel: {ts_info.physical_channel} | Signal Level: {signal_levels[ts_info]:.2f} dB')
+
+            # 信号レベルが最も高い物理チャンネル以外の物理チャンネルを terrestrial_ts_infos から削除
+            max_signal_level = max(signal_levels.values())
+            for ts_info, signal_level in signal_levels.items():
+                if signal_level != max_signal_level:
+                    terrestrial_ts_infos.remove(ts_info)
+                else:
+                    print(f'[green]Selected Physical Channel: {ts_info.physical_channel} | Signal Level: {signal_level:.2f} dB[/green]')
 
         # ***** BS・CS110 のチャンネルスキャン *****
 

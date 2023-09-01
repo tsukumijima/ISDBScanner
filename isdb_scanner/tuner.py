@@ -20,10 +20,6 @@ from isdb_scanner.constants import (
 class ISDBTuner:
     """ ISDB-T/S チューナーデバイスを操作するクラス (recisdb のラッパー) """
 
-    # 検出可能とする信号レベル (dB)
-    ## TVTest のデフォルト値と同一
-    SIGNAL_LEVEL_THRESHOLD = 7.0
-
 
     def __init__(self, device_path: Path, output_recisdb_log: bool = False) -> None:
         """
@@ -144,7 +140,7 @@ class ISDBTuner:
         return stdout
 
 
-    def checkSignal(self, physical_channel: str) -> tuple[subprocess.Popen[bytes], Iterator[float]]:
+    def getSignalLevel(self, physical_channel: str) -> tuple[subprocess.Popen[bytes], Iterator[float]]:
         """
         チューナーデバイスから指定された物理チャンネルを受信し、イテレータで信号レベルを返す
         この関数はイテレータを呼び終わってもプロセスを終了しないので、呼び出し側で明示的にプロセスを終了する必要がある
@@ -184,7 +180,7 @@ class ISDBTuner:
         return process, iterator()
 
 
-    def checkSignalMean(self, physical_channel: str) -> float | None:
+    def getSignalLevelMean(self, physical_channel: str) -> float | None:
         """
         チューナーデバイスから指定された物理チャンネルを受信し、5回の平均信号レベルを返す
 
@@ -196,7 +192,7 @@ class ISDBTuner:
         """
 
         # 信号レベルを取得するイテレータを取得
-        process, iterator = self.checkSignal(physical_channel)
+        process, iterator = self.getSignalLevel(physical_channel)
 
         # 5回分の信号レベルを取得
         # もし信号レベルの取得中にプロセスが終了した場合は選局に失敗しているので None を返す
