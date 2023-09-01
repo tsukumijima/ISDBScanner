@@ -164,9 +164,9 @@ def main(
             print('[yellow]Outputs only the physical channel with the highest signal level...[/yellow]')
 
             # それぞれの物理チャンネルの信号レベルを計測
-            signal_levels: dict[TransportStreamInfo, float] = {}
+            signal_levels: dict[str, float] = {}
             for ts_info in ts_infos:
-                signal_levels[ts_info] = -999.9  # デフォルト値 (信号レベルを計測できなかった場合用)
+                signal_levels[ts_info.physical_channel] = -99.99  # デフォルト値 (信号レベルを計測できなかった場合用)
                 for tuner in isdbt_tuners:
                     # ブラックリストに登録されているチューナーはスキップ
                     if tuner in black_list_tuners:
@@ -176,12 +176,16 @@ def main(
                     result = tuner.getSignalLevelMean(ts_info.physical_channel)
                     if result is None:
                         continue
-                    signal_levels[ts_info] = result
-                    print(f'Physical Channel: {ts_info.physical_channel} | Signal Level: {signal_levels[ts_info]:.2f} dB')
+                    signal_levels[ts_info.physical_channel] = result
+                    print(f'Physical Channel: {ts_info.physical_channel} | Signal Level: {result:.2f} dB')
+                    break  # 信号レベルが取得できたら次の物理チャンネルへ
+                if signal_levels[ts_info.physical_channel] == -99.99:
+                    print(f'Physical Channel: {ts_info.physical_channel} | Signal Level: Failed to get signal level')
 
             # 信号レベルが最も高い物理チャンネル以外の物理チャンネルを terrestrial_ts_infos から削除
             max_signal_level = max(signal_levels.values())
-            for ts_info, signal_level in signal_levels.items():
+            for physical_channel, signal_level in signal_levels.items():
+                ts_info = next(ts_info for ts_info in ts_infos if ts_info.physical_channel == physical_channel)
                 if signal_level != max_signal_level:
                     terrestrial_ts_infos.remove(ts_info)
                 else:

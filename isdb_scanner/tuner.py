@@ -163,16 +163,24 @@ class ISDBTuner:
         ## 選局/受信に失敗したか、あるいはユーザーが手動でプロセスを終了させた場合は StopIteration が発生する
         def iterator() -> Iterator[float]:
             assert process.stdout is not None
-            for line in process.stdout:
+            while True:
+
+                # \r が出力されるまで 1 バイトずつ読み込む
+                line = b''
+                while True:
+                    char = process.stdout.read(1)
+                    if char == b'\r' or char == b'':
+                        break
+                    line += char
 
                 # プロセスが終了していたら終了
-                if line == b'' or process.poll() is not None:
+                if process.poll() is not None:
                     process.send_signal(signal.SIGINT)
                     process.wait()
-                    break
+                    raise StopIteration
 
                 # 信号レベルをパースして随時返す
-                result = re.search(r'(\d+\.\d+)dB', line.decode('utf-8'))
+                result = re.search(r'(\d+\.\d+)dB', line.decode('utf-8').strip())
                 if result is None:
                     continue
                 yield float(result.group(1))
@@ -196,10 +204,12 @@ class ISDBTuner:
 
         # 5回分の信号レベルを取得
         # もし信号レベルの取得中にプロセスが終了した場合は選局に失敗しているので None を返す
-        try:
-            signal_levels = [next(iterator) for _ in range(5)]
-        except StopIteration:
-            return None
+        signal_levels: list[float] = []
+        for _ in range(5):
+            try:
+                signal_levels.append(next(iterator))
+            except RuntimeError:
+                return None
 
         # プロセスを終了
         process.send_signal(signal.SIGINT)
