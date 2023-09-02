@@ -78,11 +78,32 @@ class TransportStreamInfoList(RootModel[list[TransportStreamInfo]]):
 
 
 # ref: https://github.com/tsukumijima/px4_drv
+# ref: https://github.com/stz2012/recpt1/blob/master/recpt1/pt1_dev.h
 
-# ISDB-T 専用のチューナーデバイスのパス (px4_drv)
-# PLEX PX-W3U4/PX-Q3U4/PX-W3PE4/PX-Q3PE4/PX-W3PE5/PX-Q3PE5 用 (全体で最大8チューナーまで想定)
-# PLEX PX-S1UR は最大8台接続まで想定
+# ISDB-T 専用のチューナーデバイスのパス
+# Earthsoft PT1/PT2/PT3: 全体で最大8チューナーまで想定
+# PLEX PX-W3U4/PX-Q3U4/PX-W3PE4/PX-Q3PE4/PX-W3PE5/PX-Q3PE5: 全体で最大8チューナーまで想定
+# PLEX PX-S1UR: 最大8台接続まで想定
 ISDBT_TUNER_DEVICE_PATHS = [
+    # Earthsoft PT1/PT2
+    '/dev/pt1video2',
+    '/dev/pt1video3',
+    '/dev/pt1video6',
+    '/dev/pt1video7',
+    '/dev/pt1video10',
+    '/dev/pt1video11',
+    '/dev/pt1video14',
+    '/dev/pt1video15',
+    # Earthsoft PT3
+    '/dev/pt3video2',
+    '/dev/pt3video3',
+    '/dev/pt3video6',
+    '/dev/pt3video7',
+    '/dev/pt3video10',
+    '/dev/pt3video11',
+    '/dev/pt3video14',
+    '/dev/pt3video15',
+    # PLEX PX-W3U4/PX-Q3U4/PX-W3PE4/PX-Q3PE4/PX-W3PE5/PX-Q3PE5
     '/dev/px4video2',
     '/dev/px4video3',
     '/dev/px4video6',
@@ -109,9 +130,29 @@ ISDBT_TUNER_DEVICE_PATHS = [
     '/dev/pxs1urvideo7',
 ]
 
-# ISDB-S 専用のチューナーデバイスのパス (px4_drv)
-# PLEX PX-W3U4/PX-Q3U4/PX-W3PE4/PX-Q3PE4/PX-W3PE5/PX-Q3PE5 用 (全体で最大8チューナーまで想定)
+# ISDB-S 専用のチューナーデバイスのパス
+# Earthsoft PT1/PT2/PT3: 全体で最大8チューナーまで想定
+# PLEX PX-W3U4/PX-Q3U4/PX-W3PE4/PX-Q3PE4/PX-W3PE5/PX-Q3PE5: 全体で最大8チューナーまで想定
 ISDBS_TUNER_DEVICE_PATHS = [
+    # Earthsoft PT1/PT2
+    '/dev/pt1video0',
+    '/dev/pt1video1',
+    '/dev/pt1video4',
+    '/dev/pt1video5',
+    '/dev/pt1video8',
+    '/dev/pt1video9',
+    '/dev/pt1video12',
+    '/dev/pt1video13',
+    # Earthsoft PT3
+    '/dev/pt3video0',
+    '/dev/pt3video1',
+    '/dev/pt3video4',
+    '/dev/pt3video5',
+    '/dev/pt3video8',
+    '/dev/pt3video9',
+    '/dev/pt3video12',
+    '/dev/pt3video13',
+    # PLEX PX-W3U4/PX-Q3U4/PX-W3PE4/PX-Q3PE4/PX-W3PE5/PX-Q3PE5
     '/dev/px4video0',
     '/dev/px4video1',
     '/dev/px4video4',
@@ -122,10 +163,9 @@ ISDBS_TUNER_DEVICE_PATHS = [
     '/dev/px4video13',
 ]
 
-# ISDB-T/ISDB-S 共用のマルチチューナーデバイスのパス (px4_drv)
-# PLEX PX-MLT5PE/PX-MLT8PE/PX-M1UR, e-better DTV02A-4TS-P/DTV02A-1T1S-U 用
-# PLEX PX-MLT5PE/PX-MLT8PE, e-better DTV02A-4TS-P は最大2台接続まで想定
-# PLEX PX-M1UR, e-better DTV02A-1T1S-U は最大8台接続まで想定
+# ISDB-T/ISDB-S 共用のマルチチューナーデバイスのパス
+# PLEX PX-MLT5PE/PX-MLT8PE, e-better DTV02A-4TS-P: それぞれ最大2台接続まで想定
+# PLEX PX-M1UR, e-better DTV02A-1T1S-U: それぞれ最大8台接続まで想定
 ISDB_MULTI_TUNER_DEVICE_PATHS = [
     # DTV02A-4TS-P (1台目)
     '/dev/isdb6014video0',

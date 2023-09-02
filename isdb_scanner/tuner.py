@@ -39,16 +39,23 @@ class ISDBTuner:
         self.last_tuner_opening_failed = False
 
 
-    def __getPX4VideoDeviceTypeAndIndex(self) -> tuple[Literal['Terrestrial', 'Satellite'], int]:
+    def __getPT1PT3PX4VideoDeviceTypeAndIndex(self) -> tuple[Literal['Terrestrial', 'Satellite'], int]:
         """
-        /dev/px4videoX の X の部分を取得して、チューナーの種類と番号を返す
+        /dev/pt1videoX・/dev/pt3videoX・/dev/px4videoX の X の部分を取得して、チューナーの種類と番号を返す
 
         Returns:
             tuple[Literal['Terrestrial', 'Satellite'], int]: チューナーの種類と番号
         """
 
         # デバイスパスから数字部分を抽出
-        device_number = int(str(self.device_path).split('px4video')[-1])
+        if str(self.device_path).startswith('/dev/pt1video'):
+            device_number = int(str(self.device_path).split('pt1video')[-1])
+        elif str(self.device_path).startswith('/dev/pt3video'):
+            device_number = int(str(self.device_path).split('pt3video')[-1])
+        elif str(self.device_path).startswith('/dev/px4video'):
+            device_number = int(str(self.device_path).split('px4video')[-1])
+        else:
+            assert False, f'Unknown tuner device: {self.device_path}'
 
         # デバイスタイプとインデックスを自動判定
         # ISDB-T: 2,3,6,7,10,11,14,15 ... (2個おき)
@@ -77,9 +84,19 @@ class ISDBTuner:
             tuple[Literal['Terrestrial', 'Satellite', 'Multi'], str]: チューナーデバイスの種類と名前
         """
 
+        # Earthsoft PT1/PT2
+        if str(self.device_path).startswith('/dev/pt1video'):
+            tuner_type, tuner_number = self.__getPT1PT3PX4VideoDeviceTypeAndIndex()
+            return (tuner_type, f'Earthsoft PT1/PT2 ({tuner_type}) #{tuner_number}')
+
+        # Earthsoft PT3
+        if str(self.device_path).startswith('/dev/pt3video'):
+            tuner_type, tuner_number = self.__getPT1PT3PX4VideoDeviceTypeAndIndex()
+            return (tuner_type, f'Earthsoft PT3 ({tuner_type}) #{tuner_number}')
+
         # PLEX PX-W3U4/PX-Q3U4/PX-W3PE4/PX-Q3PE4/PX-W3PE5/PX-Q3PE5
         if str(self.device_path).startswith('/dev/px4video'):
-            tuner_type, tuner_number = self.__getPX4VideoDeviceTypeAndIndex()
+            tuner_type, tuner_number = self.__getPT1PT3PX4VideoDeviceTypeAndIndex()
             return (tuner_type, f'PLEX PX4/PX5 Series ({tuner_type}) #{tuner_number}')
 
         # PLEX PX-S1UR
@@ -202,7 +219,8 @@ class ISDBTuner:
             if error_message in [
                 'The tuner device does not exist.',
                 'The tuner device is already in use.',
-                'he tuner device is busy.',
+                'The tuner device is busy.',
+                'The tuner device does not support the ioctl system call.',
             ] or error_message.startswith('Cannot open the device.'):
                 self.last_tuner_opening_failed = True
                 raise TunerOpeningError(error_message)
