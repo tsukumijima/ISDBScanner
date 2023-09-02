@@ -33,7 +33,7 @@ app = typer.Typer()
 
 @app.command(help='ISDBScanner: Scans Japanese TV broadcast channels (ISDB-T/ISDB-S) and outputs results in various formats (depends on recisdb)')
 def main(
-    output: Path = typer.Argument(Path('./scanned_channels/'), help='Output scan results to the specified directory.'),
+    output: Path = typer.Argument(Path('scanned/'), help='Output scan results to the specified directory.'),
     exclude_pay_tv: bool = typer.Option(False, help='Exclude pay-TV channels from scan results and include only free-to-air terrestrial and BS channels.'),
     output_recisdb_log: bool = typer.Option(False, help='Output recisdb log to stderr.'),
 ):
@@ -60,10 +60,6 @@ def main(
         return
 
     scan_start_time = time.time()
-
-    # チューナーのブラックリスト
-    ## TunerOpeningError が発生した場合に、そのチューナーをブラックリストに追加する
-    black_list_tuners: list[ISDBTuner] = []
 
     # トータルでスキャンする必要がある物理チャンネル数
     ## 13ch - 62ch + BS01_0 (BS) + CS02 (CS1) + CS04 (CS2)
@@ -114,8 +110,8 @@ def main(
             progress.update(task, completed=scanned_channel_count)
             try:
                 for tuner in isdbt_tuners:
-                    # ブラックリストに登録されているチューナーはスキップ
-                    if tuner in black_list_tuners:
+                    # 前回チューナーオープンに失敗したチューナーはスキップ
+                    if tuner.last_tuner_opening_failed is True:
                         continue
                     # チューナーの起動と TS 解析を実行
                     print(Rule(characters='-', style=Style(color='#E33157')))
@@ -138,7 +134,6 @@ def main(
                                 print(f'[green]         Service[/green]: {service_info}')
                         break
                     except TunerOpeningError as ex:
-                        black_list_tuners.append(tuner)
                         print(f'[red]Failed to open tuner. {ex}[/red]')
                         print('[red]Trying again with the next tuner...[/red]')
                         continue
@@ -185,8 +180,8 @@ def main(
             for ts_info in ts_infos:
                 signal_levels[ts_info.physical_channel] = -99.99  # デフォルト値 (信号レベルを計測できなかった場合用)
                 for tuner in isdbt_tuners:
-                    # ブラックリストに登録されているチューナーはスキップ
-                    if tuner in black_list_tuners:
+                    # 前回チューナーオープンに失敗したチューナーはスキップ
+                    if tuner.last_tuner_opening_failed is True:
                         continue
                     # チューナーの起動と平均信号レベル取得を実行
                     ## チューナーの起動失敗などで平均信号レベルが取得できなかった場合は None が返されるので、次のチューナーで試す
@@ -235,8 +230,8 @@ def main(
             scanned_channel_count += 1
             progress.update(task, completed=scanned_channel_count)
             for tuner in isdbs_tuners:
-                # ブラックリストに登録されているチューナーはスキップ
-                if tuner in black_list_tuners:
+                # 前回チューナーオープンに失敗したチューナーはスキップ
+                if tuner.last_tuner_opening_failed is True:
                     continue
                 # チューナーの起動と TS 解析を実行
                 channel_type = 'BS' if channel.startswith('BS') else ('CS1' if channel.startswith('CS02') else 'CS2')
@@ -263,7 +258,6 @@ def main(
                             print(f'[green]         Service[/green]: {service_info}')
                     break
                 except TunerOpeningError as ex:
-                    black_list_tuners.append(tuner)
                     print(f'[red]Failed to open tuner. {ex}[/red]')
                     print('[red]Trying again with the next tuner...[/red]')
                     continue
@@ -294,11 +288,10 @@ def main(
     (output / 'Mirakurun').mkdir(parents=True, exist_ok=True)
     (output / 'mirakc').mkdir(parents=True, exist_ok=True)
 
-    # ブラックリストに入ってない ISDB-T 専用チューナー・ISDB-S 専用チューナー・ISDB-T/S 共用チューナーを取得
-    ## このツールが利用されるシチュエーション上、ブラックリストに入っているチューナーは何らかの要因で故障していて利用不可だとみなす (PC 再起動で直る可能性もある)
-    available_isdbt_tuners = [tuner for tuner in ISDBTuner.getAvailableISDBTOnlyTuners() if tuner not in black_list_tuners]
-    available_isdbs_tuners = [tuner for tuner in ISDBTuner.getAvailableISDBSOnlyTuners() if tuner not in black_list_tuners]
-    available_multi_tuners = [tuner for tuner in ISDBTuner.getAvailableMultiTuners() if tuner not in black_list_tuners]
+    # ISDB-T 専用チューナー・ISDB-S 専用チューナー・ISDB-T/S 共用チューナーを取得
+    available_isdbt_tuners = ISDBTuner.getAvailableISDBTOnlyTuners()
+    available_isdbs_tuners = ISDBTuner.getAvailableISDBSOnlyTuners()
+    available_multi_tuners = ISDBTuner.getAvailableMultiTuners()
 
     # チャンネルスキャン結果 (&一部のフォーマットでは利用可能なチューナー情報も) を様々なフォーマットで保存
     JSONFormatter(output / 'Channels.json', tr_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()

@@ -35,6 +35,9 @@ class ISDBTuner:
         self.output_recisdb_log = output_recisdb_log
         self.type, self.name = self.__getTunerDeviceInfo()
 
+        # 前回チューナーオープンが失敗した (TunerOpeningError が発生した) かどうか
+        self.last_tuner_opening_failed = False
+
 
     def __getPX4VideoDeviceTypeAndIndex(self) -> tuple[Literal['Terrestrial', 'Satellite'], int]:
         """
@@ -127,6 +130,8 @@ class ISDBTuner:
             TunerOutputError: 受信したデータが小さすぎる場合
         """
 
+        self.last_tuner_opening_failed = False
+
         # recisdb (チューナープロセス) を起動
         process = subprocess.Popen(
             ['recisdb', 'tune', '--device', str(self.device_path), '--channel', physical_channel, '--time', str(recording_time), '-'],
@@ -199,6 +204,7 @@ class ISDBTuner:
                 'The tuner device is already in use.',
                 'he tuner device is busy.',
             ] or error_message.startswith('Cannot open the device.'):
+                self.last_tuner_opening_failed = True
                 raise TunerOpeningError(error_message)
 
             # それ以外は選局/受信時のエラーと判断

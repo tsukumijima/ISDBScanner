@@ -464,8 +464,8 @@ class MirakcConfigYmlFormatter(BaseFormatter):
             'epg': {
                 'cache-dir': '/var/cache/mirakc/epg',
             },
-            'channels': cast(list[MirakcChannel], []),
-            'tuners': cast(list[MirakcTuner], []),
+            'channels': [],
+            'tuners': [],
         }
 
         # 各 TS 情報を物理チャンネル昇順でソートして結合
@@ -476,7 +476,6 @@ class MirakcConfigYmlFormatter(BaseFormatter):
         ts_infos = terrestrial_ts_infos + bs_ts_infos + cs_ts_infos
 
         # mirakc のチャンネル設定ファイル用のデータ構造に変換
-        mirakc_channels: list[MirakcChannel] = []
         for ts_info in ts_infos:
             if 0x7880 <= ts_info.network_id <= 0x7FE8:
                 mirakc_name = ts_info.network_name
@@ -498,10 +497,9 @@ class MirakcConfigYmlFormatter(BaseFormatter):
                 'channel': mirakc_channel,
                 'disabled': False,
             }
-            mirakc_channels.append(channel)
+            cast(list[MirakcChannel], mirakc_config['channels']).append(channel)
 
         # mirakc のチューナー設定ファイル用のデータ構造に変換
-        mirakc_tuners: list[MirakcTuner] = []
         for isdbt_tuner in self._isdbt_tuners:
             tuner: MirakcTuner = {
                 'name': isdbt_tuner.name,
@@ -509,7 +507,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
                 'command': f'recisdb tune --device {isdbt_tuner.device_path} --channel ' + '{{{channel}}} -',
                 'disabled': False,
             }
-            mirakc_tuners.append(tuner)
+            cast(list[MirakcTuner], mirakc_config['tuners']).append(tuner)
         for isdbs_tuner in self._isdbs_tuners:
             tuner: MirakcTuner = {
                 'name': isdbs_tuner.name,
@@ -517,7 +515,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
                 'command': f'recisdb tune --device {isdbs_tuner.device_path} --channel ' + '{{{channel}}} -',
                 'disabled': False,
             }
-            mirakc_tuners.append(tuner)
+            cast(list[MirakcTuner], mirakc_config['tuners']).append(tuner)
         for multi_tuner in self._multi_tuners:
             tuner: MirakcTuner = {
                 'name': multi_tuner.name,
@@ -525,7 +523,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
                 'command': f'recisdb tune --device {multi_tuner.device_path} --channel ' + '{{{channel}}} -',
                 'disabled': False,
             }
-            mirakc_tuners.append(tuner)
+            cast(list[MirakcTuner], mirakc_config['tuners']).append(tuner)
 
         # YAML に変換
         string_io = StringIO()
