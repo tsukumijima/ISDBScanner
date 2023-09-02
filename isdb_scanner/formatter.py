@@ -155,6 +155,7 @@ class EDCBChSet4TxtFormatter(BaseFormatter):
                 ## 正確には有料放送の TS に無料独立データ放送が含まれる場合もあるので (WOWOW など) 、それらも除外してから判定する
                 ## 独立データ放送の service_type は 0xC0 なので、それ以外のサービスが空かどうかで判定する
                 if self._exclude_pay_tv is True and len([service for service in ts_info.services if service.service_type != 0xC0]) == 0:
+                    ch += 1
                     continue
                 for service in ts_info.services:
                     ts_name_prefix = ''
