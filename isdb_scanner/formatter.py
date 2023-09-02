@@ -1,10 +1,11 @@
 
+import copy
 import csv
 import json
 from io import StringIO
 from pathlib import Path
 from ruamel.yaml import YAML
-from typing import cast, TypedDict
+from typing import Any, cast, TypedDict
 
 from isdb_scanner.constants import TransportStreamInfo
 from isdb_scanner.constants import TransportStreamInfoList
@@ -440,6 +441,18 @@ class MirakcConfigYmlFormatter(BaseFormatter):
         bs_ts_infos: list[TransportStreamInfo],
         cs_ts_infos: list[TransportStreamInfo],
         exclude_pay_tv: bool = False,
+        mirakc_config_template: dict[str, Any] = {
+            'server': {
+                'addrs': [
+                    {'http': '0.0.0.0:40772'},
+                ],
+            },
+            'epg': {
+                'cache-dir': '/var/lib/mirakc/epg',
+            },
+            'channels': [],
+            'tuners': [],
+        },
     ) -> None:
         """
         Args:
@@ -451,12 +464,17 @@ class MirakcConfigYmlFormatter(BaseFormatter):
             bs_ts_infos (list[TransportStreamInfo]): スキャン結果の BS の TS 情報
             cs_ts_infos (list[TransportStreamInfo]): スキャン結果の CS の TS 情報
             exclude_pay_tv (bool): 有料放送 (+ショップチャンネル&QVC) を除外し、地上波と BS 無料放送のみを保存するか
+            mirakc_config_template (dict[str, Any]): mirakc の設定ファイルのひな形 (channels と tuners は空のリストで初期化されている必要がある)
         """
 
         self._isdbt_tuners = isdbt_tuners
         self._isdbs_tuners = isdbs_tuners
         self._multi_tuners = multi_tuners
         super().__init__(save_file_path, terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv)
+
+        assert 'channels' in mirakc_config_template and type(mirakc_config_template['channels']) is list
+        assert 'tuners' in mirakc_config_template and type(mirakc_config_template['tuners']) is list
+        self._mirakc_config_template = mirakc_config_template
 
 
     def format(self) -> str:
@@ -468,18 +486,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
         """
 
         # ひな形の設定データ
-        mirakc_config = {
-            'server': {
-                'addrs': [
-                    {'http': '0.0.0.0:40772'},
-                ],
-            },
-            'epg': {
-                'cache-dir': '/var/lib/mirakc/epg',
-            },
-            'channels': [],
-            'tuners': [],
-        }
+        mirakc_config = copy.deepcopy(self._mirakc_config_template)  # ひな型が変更されないようにコピーする
 
         # 各 TS 情報を物理チャンネル昇順でソートして結合
         ## この時点で処理対象が地上波チューナーなら BS/CS の TS 情報、衛星チューナーなら地上波の TS 情報として空のリストが渡されているはず
