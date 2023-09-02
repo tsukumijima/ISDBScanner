@@ -294,7 +294,7 @@ def main(
     available_multi_tuners = ISDBTuner.getAvailableMultiTuners()
 
     # チャンネルスキャン結果 (&一部のフォーマットでは利用可能なチューナー情報も) を様々なフォーマットで保存
-    JSONFormatter(output / 'Channels.json', tr_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
+    JSONFormatter(output / 'Channels.json', tr_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv=False).save()  # JSON のみ常に取得した全チャンネルを出力
     EDCBChSet4TxtFormatter(output / 'EDCB-Wine/BonDriver_mirakc(BonDriver_mirakc).ChSet4.txt', tr_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
     EDCBChSet4TxtFormatter(output / 'EDCB-Wine/BonDriver_mirakc_T(BonDriver_mirakc).ChSet4.txt', tr_ts_infos, [], [], exclude_pay_tv).save()
     EDCBChSet4TxtFormatter(output / 'EDCB-Wine/BonDriver_mirakc_S(BonDriver_mirakc).ChSet4.txt', [], bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
