@@ -100,7 +100,7 @@ def main(
             # プログレスバーはスキャンする予定だった地上波チャンネル分だけ進める
             progress.update(task, completed=len(scan_terrestrial_physical_channels))
         for isdbt_tuner in isdbt_tuners:
-            print(f'Found Tuner: {isdbt_tuner.name} ({isdbt_tuner.device_path})')
+            print(f'Found Tuner: [green]{isdbt_tuner.name}[/green] ({isdbt_tuner.device_path})')
 
         # 地上波のチャンネルスキャンを実行 (13ch - 62ch)
         ## 地上波のうち 53ch - 62ch はすでに廃止されているが、依然一部ケーブルテレビのコミュニティチャンネル (自主放送) で利用されている
@@ -115,8 +115,8 @@ def main(
                         continue
                     # チューナーの起動と TS 解析を実行
                     print(Rule(characters='-', style=Style(color='#E33157')))
-                    print(f'Channel: [bright_blue]Terrestrial - {channel.replace("T", "")}ch[/bright_blue]')
-                    print(f'Tuner: {tuner.name} ({tuner.device_path})')
+                    print(f'  Channel: [bright_blue]Terrestrial - {channel.replace("T", "")}ch[/bright_blue]')
+                    print(f'    Tuner: [green]{tuner.name}[/green] ({tuner.device_path})')
                     try:
                         # 録画時間: 2.25 秒 (地上波の SI 送出間隔は最大 2 秒周期)
                         start_time = time.time()
@@ -124,7 +124,7 @@ def main(
                             tuner.output_recisdb_log = output_recisdb_log
                             ts_stream_data = tuner.tune(channel, recording_time=2.25)
                         finally:
-                            print(f'Tuning time: {time.time() - start_time:.2f} seconds')
+                            print(f'Tune Time: {time.time() - start_time:.2f} seconds')
                         # トランスポートストリームとサービスの情報を解析
                         ts_infos = TransportStreamAnalyzer(ts_stream_data, channel).analyze()
                         tr_ts_infos.extend(ts_infos)
@@ -221,7 +221,7 @@ def main(
             # プログレスバーはスキャンする予定だった BS・CS110 チャンネル分だけ進める
             progress.update(task, completed=len(scan_terrestrial_physical_channels) + len(scan_satellite_physical_channels))
         for isdbs_tuner in isdbs_tuners:
-            print(f'Found Tuner: {isdbs_tuner.name} ({isdbs_tuner.device_path})')
+            print(f'Found Tuner: [green]{isdbs_tuner.name}[/green] ({isdbs_tuner.device_path})')
 
         # BS・CS1・CS2 のチャンネルスキャンを実行
         bs_ts_infos: list[TransportStreamInfo] = []
@@ -236,8 +236,8 @@ def main(
                 # チューナーの起動と TS 解析を実行
                 channel_type = 'BS' if channel.startswith('BS') else ('CS1' if channel.startswith('CS02') else 'CS2')
                 print(Rule(characters='-', style=Style(color='#E33157')))
-                print(f'Channel: [bright_blue]{channel_type} (All channels)[/bright_blue]')
-                print(f'Tuner: {tuner.name} ({tuner.device_path})')
+                print(f' Channel: [bright_blue]{channel_type} (All channels)[/bright_blue]')
+                print(f'   Tuner: [green]{tuner.name}[/green] ({tuner.device_path})')
                 try:
                     # 録画時間: 10.25 秒 (BS・CS110 の SI 送出間隔は最大 10 秒周期)
                     start_time = time.time()
@@ -245,7 +245,7 @@ def main(
                         tuner.output_recisdb_log = output_recisdb_log
                         ts_stream_data = tuner.tune(channel, recording_time=10.25)
                     finally:
-                        print(f'Tuning time: {time.time() - start_time:.2f} seconds')
+                        print(f'Tune Time: {time.time() - start_time:.2f} seconds')
                     # トランスポートストリームとサービスの情報を解析
                     ts_infos = TransportStreamAnalyzer(ts_stream_data, channel).analyze()
                     if channel.startswith('BS'):
