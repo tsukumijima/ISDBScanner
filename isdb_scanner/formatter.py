@@ -462,7 +462,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
                 ],
             },
             'epg': {
-                'cache-dir': '/var/cache/mirakc/epg',
+                'cache-dir': '/var/lib/mirakc/epg',
             },
             'channels': [],
             'tuners': [],
