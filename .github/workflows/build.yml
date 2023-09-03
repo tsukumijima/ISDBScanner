@@ -1,0 +1,105 @@
+
+name: Build
+
+on:
+  push:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+
+  build-linux:
+    runs-on: ubuntu-20.04
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Install and configure Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-in-project: true
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'poetry'
+          cache-dependency-path: '${{ github.workspace }}/poetry.lock'
+
+      - name: Install Dependencies
+        run: |
+          pip install nuitka poetry
+          poetry install
+
+      - name: Build Installer with Nuitka
+        run: |
+          nuitka3 --onefile --follow-imports --assume-yes-for-downloads --output-filename=isdb-scanner isdb_scanner/__main__.py
+
+      - name: Upload Installer Executable as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: isdb-scanner
+          path: dist/isdb-scanner
+
+  build-linux-arm:
+    runs-on: ubuntu-20.04
+    steps:
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: linux/arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Create Dockerfile
+        run: |
+          cat <<EOF > Dockerfile
+          FROM arm64v8/ubuntu:20.04
+          ENV DEBIAN_FRONTEND=noninteractive
+          RUN apt-get update && \
+              apt-get install -y --no-install-recommends software-properties-common && \
+              add-apt-repository -y ppa:deadsnakes/ppa && \
+              apt-get install -y \
+                build-essential \
+                curl \
+                patchelf \
+                python3.11 \
+                python3.11-dev \
+                python3.11-distutils \
+                python3.11-venv \
+                zlib1g \
+                zlib1g-dev
+          RUN curl https://bootstrap.pypa.io/get-pip.py | python3.11
+          RUN python3.11 -m pip install nuitka poetry
+          EOF
+
+      - name: Build Docker Image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          tags: arm64v8/ubuntu:build
+          cache-from: type=gha,scope=arm64v8/ubuntu
+          cache-to: type=gha,scope=arm64v8/ubuntu,mode=max
+          load: true
+
+      - name: Remove Dockerfile
+        run: rm Dockerfile
+
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Build Installer with Nuitka
+        run: |
+          docker run --rm -i -v $(pwd):/work -w /work arm64v8/ubuntu:build bash -c \
+            'poetry install && \
+             nuitka3 --onefile --follow-imports --assume-yes-for-downloads --output-filename=isdb-scanner isdb_scanner/__main__.py'
+          sudo cp -a dist/isdb-scanner dist/isdb-scanner-arm
+
+      - name: Upload Installer Executable as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: isdb-scanner-arm
+          path: dist/isdb-scanner-arm
