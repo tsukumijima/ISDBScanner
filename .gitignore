@@ -142,4 +142,6 @@ cython_debug/
 !.gitkeep
 
 build/
-scanned*
+dist/
+scanned*/
+isdb-scanner*
