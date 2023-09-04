@@ -32,15 +32,15 @@ jobs:
           pip install poetry
           poetry install
 
-      - name: Build Installer with Nuitka
+      - name: Build with PyInstaller
         run: |
-          poetry run nuitka3 --onefile --follow-imports --assume-yes-for-downloads --output-filename=isdb-scanner isdb_scanner/__main__.py
+          poetry run pyinstaller --onefile --name=isdb-scanner isdb_scanner/__main__.py
 
-      - name: Upload Installer Executable as Artifact
+      - name: Upload Executable as Artifact
         uses: actions/upload-artifact@v3
         with:
           name: isdb-scanner
-          path: isdb-scanner
+          path: dist/isdb-scanner
 
   build-linux-arm:
     runs-on: ubuntu-20.04
@@ -91,13 +91,13 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Build Installer with Nuitka
+      - name: Build with PyInstaller
         run: |
           docker run --rm -i -v $(pwd):/work -w /work arm64v8/ubuntu:build bash -c \
-            'poetry install && poetry run nuitka3 --onefile --follow-imports --assume-yes-for-downloads --output-filename=isdb-scanner-arm isdb_scanner/__main__.py'
+            'poetry install && poetry run pyinstaller --onefile --name=isdb-scanner-arm isdb_scanner/__main__.py'
 
-      - name: Upload Installer Executable as Artifact
+      - name: Upload Executable as Artifact
         uses: actions/upload-artifact@v3
         with:
           name: isdb-scanner-arm
-          path: isdb-scanner-arm
+          path: dist/isdb-scanner-arm

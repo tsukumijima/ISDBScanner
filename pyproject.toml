@@ -7,7 +7,7 @@ license = "MIT"
 readme = "Readme.md"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = ">=3.11,<3.13"
 ariblib = {url = "https://github.com/tsukumijima/ariblib/releases/download/v0.1.3/ariblib-0.1.3-py3-none-any.whl"}
 devtools = "^0.11.0"
 pydantic = "^2.1.1"
@@ -15,7 +15,7 @@ ruamel-yaml = "^0.17.32"
 typer = {extras = ["all"], version = "^0.9.0"}
 
 [tool.poetry.group.dev.dependencies]
-nuitka = "^1.8"
+pyinstaller = "^5.13.2"
 
 [build-system]
 requires = ["poetry-core"]
