@@ -14,6 +14,9 @@ pydantic = "^2.1.1"
 ruamel-yaml = "^0.17.32"
 typer = {extras = ["all"], version = "^0.9.0"}
 
+[tool.poetry.group.dev.dependencies]
+nuitka = "^1.8"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
