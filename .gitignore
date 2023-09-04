@@ -141,6 +141,7 @@ cython_debug/
 # ignore .gitkeep
 !.gitkeep
 
+.python-version
 __main__.build/
 __main__.dist/
 __main__.onefile-build/
