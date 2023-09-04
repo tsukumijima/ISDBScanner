@@ -34,7 +34,7 @@ jobs:
 
       - name: Build Installer with Nuitka
         run: |
-          poetry run nuitka3 --onefile --follow-imports --assume-yes-for-downloads --static-libpython=no --output-filename=isdb-scanner isdb_scanner/__main__.py
+          poetry run nuitka3 --onefile --follow-imports --assume-yes-for-downloads --output-filename=isdb-scanner isdb_scanner/__main__.py
 
       - name: Upload Installer Executable as Artifact
         uses: actions/upload-artifact@v3
@@ -94,7 +94,7 @@ jobs:
       - name: Build Installer with Nuitka
         run: |
           docker run --rm -i -v $(pwd):/work -w /work arm64v8/ubuntu:build bash -c \
-            'poetry install && poetry run nuitka3 --onefile --follow-imports --assume-yes-for-downloads --static-libpython=no --output-filename=isdb-scanner-arm isdb_scanner/__main__.py'
+            'poetry install && poetry run nuitka3 --onefile --follow-imports --assume-yes-for-downloads --output-filename=isdb-scanner-arm isdb_scanner/__main__.py'
 
       - name: Upload Installer Executable as Artifact
         uses: actions/upload-artifact@v3
