@@ -279,6 +279,28 @@ class MirakurunChannelsYmlFormatter(BaseFormatter):
     """
 
 
+    def __init__(self,
+        save_file_path: Path,
+        terrestrial_ts_infos: list[TransportStreamInfo],
+        bs_ts_infos: list[TransportStreamInfo],
+        cs_ts_infos: list[TransportStreamInfo],
+        exclude_pay_tv: bool = False,
+        recpt1_compatible: bool = False,
+    ) -> None:
+        """
+        Args:
+            save_file_path (Path): 保存先のファイルパス
+            terrestrial_ts_infos (list[TransportStreamInfo]): スキャン結果の地上波の TS 情報
+            bs_ts_infos (list[TransportStreamInfo]): スキャン結果の BS の TS 情報
+            cs_ts_infos (list[TransportStreamInfo]): スキャン結果の CS の TS 情報
+            exclude_pay_tv (bool): 有料放送 (+ショップチャンネル&QVC) を除外し、地上波と BS 無料放送のみを保存するか
+            recpt1_compatible (bool): recpt1 と互換性のある物理チャンネル指定フォーマットで保存するか
+        """
+
+        self._recpt1_compatible = recpt1_compatible
+        super().__init__(save_file_path, terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv)
+
+
     def format(self) -> str:
         """
         Mirakurun のチャンネル設定ファイルとしてフォーマットする
@@ -300,7 +322,7 @@ class MirakurunChannelsYmlFormatter(BaseFormatter):
             if 0x7880 <= ts_info.network_id <= 0x7FE8:
                 mirakurun_name = ts_info.network_name
                 mirakurun_type = 'GR'
-                mirakurun_channel = ts_info.physical_channel.replace('T', '')  # T13 -> 13
+                mirakurun_channel = ts_info.physical_channel
             else:
                 mirakurun_name = ts_info.physical_channel
                 mirakurun_type = 'BS' if ts_info.network_id == 4 else 'CS'
@@ -311,6 +333,10 @@ class MirakurunChannelsYmlFormatter(BaseFormatter):
                 ## 独立データ放送の service_type は 0xC0 なので、それ以外のサービスが空かどうかで判定する
                 if self._exclude_pay_tv is True and len([service for service in ts_info.services if service.service_type != 0xC0]) == 0:
                     continue
+            # recpt1 互換の物理チャンネル指定フォーマットに変換 (指定されている場合のみ)
+            if self._recpt1_compatible is True:
+                mirakurun_channel = mirakurun_channel.replace('T', '')  # T13 -> 13
+                mirakurun_channel = mirakurun_channel.replace('CS0', 'CS')  # CS04 -> CS4
             channel: MirakurunChannel = {
                 'name': mirakurun_name,
                 'type': mirakurun_type,
@@ -441,6 +467,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
         bs_ts_infos: list[TransportStreamInfo],
         cs_ts_infos: list[TransportStreamInfo],
         exclude_pay_tv: bool = False,
+        recpt1_compatible: bool = False,
         mirakc_config_template: dict[str, Any] = {
             'server': {
                 'addrs': [
@@ -464,12 +491,14 @@ class MirakcConfigYmlFormatter(BaseFormatter):
             bs_ts_infos (list[TransportStreamInfo]): スキャン結果の BS の TS 情報
             cs_ts_infos (list[TransportStreamInfo]): スキャン結果の CS の TS 情報
             exclude_pay_tv (bool): 有料放送 (+ショップチャンネル&QVC) を除外し、地上波と BS 無料放送のみを保存するか
+            recpt1_compatible (bool): recpt1 と互換性のある物理チャンネル指定フォーマットで保存するか
             mirakc_config_template (dict[str, Any]): mirakc の設定ファイルのひな形 (channels と tuners は空のリストで初期化されている必要がある)
         """
 
         self._isdbt_tuners = isdbt_tuners
         self._isdbs_tuners = isdbs_tuners
         self._multi_tuners = multi_tuners
+        self._recpt1_compatible = recpt1_compatible
         super().__init__(save_file_path, terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv)
 
         assert 'channels' in mirakc_config_template and type(mirakc_config_template['channels']) is list
@@ -500,7 +529,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
             if 0x7880 <= ts_info.network_id <= 0x7FE8:
                 mirakc_name = ts_info.network_name
                 mirakc_type = 'GR'
-                mirakc_channel = ts_info.physical_channel.replace('T', '')  # T13 -> 13
+                mirakc_channel = ts_info.physical_channel
             else:
                 mirakc_name = ts_info.physical_channel
                 mirakc_type = 'BS' if ts_info.network_id == 4 else 'CS'
@@ -511,6 +540,10 @@ class MirakcConfigYmlFormatter(BaseFormatter):
                 ## 独立データ放送の service_type は 0xC0 なので、それ以外のサービスが空かどうかで判定する
                 if self._exclude_pay_tv is True and len([service for service in ts_info.services if service.service_type != 0xC0]) == 0:
                     continue
+            # recpt1 互換の物理チャンネル指定フォーマットに変換 (指定されている場合のみ)
+            if self._recpt1_compatible is True:
+                mirakc_channel = mirakc_channel.replace('T', '')  # T13 -> 13
+                mirakc_channel = mirakc_channel.replace('CS0', 'CS')  # CS04 -> CS4
             channel: MirakcChannel = {
                 'name': mirakc_name,
                 'type': mirakc_type,
