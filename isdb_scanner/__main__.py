@@ -62,14 +62,15 @@ def main(
     scan_start_time = time.time()
 
     # トータルでスキャンする必要がある物理チャンネル数
-    ## 13ch - 62ch + BS01_0 (BS) + CS02 (CS1) + CS04 (CS2)
+    ## 13ch - 62ch + BS15_0 (BS) + CS02 (CS1) + CS04 (CS2)
     ## 地上波はフルスキャン、衛星放送はそれぞれのネットワークごとの最初の物理チャンネルのみをスキャン
     ## 衛星放送では同一ネットワーク内の異なるチャンネルの情報を一括で取得できるため、スキャンは 3 回のみで済む
+    ## BS のデフォルト TS は運用規定で 0x40F1 (BS15/TS0) であるため、BS15_0 をスキャンしている
     scan_terrestrial_physical_channels = [f'T{i}' for i in range(13, 63)]
     if exclude_pay_tv is True:
-        scan_satellite_physical_channels = ['BS01_0']
+        scan_satellite_physical_channels = ['BS15_0']
     else:
-        scan_satellite_physical_channels = ['BS01_0', 'CS02', 'CS04']
+        scan_satellite_physical_channels = ['BS15_0', 'CS02', 'CS04']
     total_channel_count = len(scan_terrestrial_physical_channels) + len(scan_satellite_physical_channels)
 
     # スキャンし終えたチャンネル数 (受信できたかは問わない)
