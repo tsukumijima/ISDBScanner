@@ -295,27 +295,52 @@ def main(
     available_multi_tuners = ISDBTuner.getAvailableMultiTuners()
 
     # チャンネルスキャン結果 (&一部のフォーマットでは利用可能なチューナー情報も) を様々なフォーマットで保存
-    JSONFormatter(output / 'Channels.json', tr_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv=False).save()  # JSON のみ常に取得した全チャンネルを出力
-    EDCBChSet4TxtFormatter(output / 'EDCB-Wine/BonDriver_mirakc(BonDriver_mirakc).ChSet4.txt', tr_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
-    EDCBChSet4TxtFormatter(output / 'EDCB-Wine/BonDriver_mirakc_T(BonDriver_mirakc).ChSet4.txt', tr_ts_infos, [], [], exclude_pay_tv).save()
-    EDCBChSet4TxtFormatter(output / 'EDCB-Wine/BonDriver_mirakc_S(BonDriver_mirakc).ChSet4.txt', [], bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
-    EDCBChSet5TxtFormatter(output / 'EDCB-Wine/ChSet5.txt', tr_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
-    MirakurunChannelsYmlFormatter(output / 'Mirakurun/channels.yml', tr_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv).save()
-    MirakurunChannelsYmlFormatter(output / 'Mirakurun/channels_recpt1.yml', tr_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv, recpt1_compatible=True).save()
-    MirakurunTunersYmlFormatter(output / 'Mirakurun/tuners.yml', available_isdbt_tuners, available_isdbs_tuners, available_multi_tuners).save()
+    ## JSON のみ常に取得した全チャンネルを出力
+    JSONFormatter(
+        output / 'Channels.json',
+        tr_ts_infos, bs_ts_infos, cs_ts_infos,
+        exclude_pay_tv = False).save()
+    EDCBChSet4TxtFormatter(
+        output / 'EDCB-Wine/BonDriver_mirakc(BonDriver_mirakc).ChSet4.txt',
+        tr_ts_infos, bs_ts_infos, cs_ts_infos,
+        exclude_pay_tv).save()
+    EDCBChSet4TxtFormatter(
+        output / 'EDCB-Wine/BonDriver_mirakc_T(BonDriver_mirakc).ChSet4.txt',
+        tr_ts_infos, [], [],
+        exclude_pay_tv).save()
+    EDCBChSet4TxtFormatter(
+        output / 'EDCB-Wine/BonDriver_mirakc_S(BonDriver_mirakc).ChSet4.txt',
+        [], bs_ts_infos, cs_ts_infos,
+        exclude_pay_tv).save()
+    EDCBChSet5TxtFormatter(
+        output / 'EDCB-Wine/ChSet5.txt',
+        tr_ts_infos, bs_ts_infos, cs_ts_infos,
+        exclude_pay_tv).save()
+    MirakurunChannelsYmlFormatter(
+        output / 'Mirakurun/channels.yml',
+        tr_ts_infos, bs_ts_infos, cs_ts_infos,
+        exclude_pay_tv).save()
+    MirakurunChannelsYmlFormatter(
+        output / 'Mirakurun/channels_recpt1.yml',
+        tr_ts_infos, bs_ts_infos, cs_ts_infos,
+        exclude_pay_tv, recpt1_compatible = True).save()
+    MirakurunTunersYmlFormatter(
+        output / 'Mirakurun/tuners.yml',
+        available_isdbt_tuners, available_isdbs_tuners, available_multi_tuners).save()
+    MirakurunTunersYmlFormatter(
+        output / 'Mirakurun/tuners_recpt1.yml',
+        available_isdbt_tuners, available_isdbs_tuners, available_multi_tuners,
+        recpt1_compatible = True).save()
     MirakcConfigYmlFormatter(
         output / 'mirakc/config.yml',
         available_isdbt_tuners, available_isdbs_tuners, available_multi_tuners,
         tr_ts_infos, bs_ts_infos, cs_ts_infos,
-        exclude_pay_tv,
-    ).save()
+        exclude_pay_tv).save()
     MirakcConfigYmlFormatter(
         output / 'mirakc/config_recpt1.yml',
         available_isdbt_tuners, available_isdbs_tuners, available_multi_tuners,
         tr_ts_infos, bs_ts_infos, cs_ts_infos,
-        exclude_pay_tv,
-        recpt1_compatible=True,
-    ).save()
+        exclude_pay_tv, recpt1_compatible = True).save()
 
     print(Rule(characters='=', style=Style(color='#E33157')))
     print(f'Finished in {time.time() - scan_start_time:.2f} seconds.')

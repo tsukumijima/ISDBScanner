@@ -376,6 +376,7 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
         isdbt_tuners: list[ISDBTuner],
         isdbs_tuners: list[ISDBTuner],
         multi_tuners: list[ISDBTuner],
+        recpt1_compatible: bool = False,
     ) -> None:
         """
         Args:
@@ -383,12 +384,14 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
             isdbt_tuners (list[ISDBTuner]): ISDB-T 専用チューナーのリスト
             isdbs_tuners (list[ISDBTuner]): ISDB-S 専用チューナーのリスト
             multi_tuners (list[ISDBTuner]): ISDB-T/S 共用チューナーのリスト
+            recpt1_compatible (bool): recpt1 と互換性のある物理チャンネル指定フォーマットで保存するか
         """
 
         self._save_file_path = save_file_path
         self._isdbt_tuners = isdbt_tuners
         self._isdbs_tuners = isdbs_tuners
         self._multi_tuners = multi_tuners
+        self._recpt1_compatible = recpt1_compatible
 
 
     def format(self) -> str:
@@ -399,13 +402,19 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
             str: フォーマットされた文字列
         """
 
+        def get_tuner_command(device_path: Path) -> str:
+            if self._recpt1_compatible is True:
+                return f'recpt1 --device {device_path} <channel> - -'
+            else:
+                return f'recisdb tune --device {device_path} --channel <channel> -'
+
         # Mirakurun のチューナー設定ファイル用のデータ構造に変換
         mirakurun_tuners: list[MirakurunTuner] = []
         for isdbt_tuner in self._isdbt_tuners:
             tuner: MirakurunTuner = {
                 'name': isdbt_tuner.name,
                 'types': ['GR'],
-                'command': f'recisdb tune --device {isdbt_tuner.device_path} --channel <channel> -',
+                'command': get_tuner_command(isdbt_tuner.device_path),
                 'isDisabled': False,
             }
             mirakurun_tuners.append(tuner)
@@ -413,7 +422,7 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
             tuner: MirakurunTuner = {
                 'name': isdbs_tuner.name,
                 'types': ['BS', 'CS'],
-                'command': f'recisdb tune --device {isdbs_tuner.device_path} --channel <channel> -',
+                'command': get_tuner_command(isdbs_tuner.device_path),
                 'isDisabled': False,
             }
             mirakurun_tuners.append(tuner)
@@ -421,7 +430,7 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
             tuner: MirakurunTuner = {
                 'name': multi_tuner.name,
                 'types': ['GR', 'BS', 'CS'],
-                'command': f'recisdb tune --device {multi_tuner.device_path} --channel <channel> -',
+                'command': get_tuner_command(multi_tuner.device_path),
                 'isDisabled': False,
             }
             mirakurun_tuners.append(tuner)
@@ -552,12 +561,18 @@ class MirakcConfigYmlFormatter(BaseFormatter):
             }
             cast(list[MirakcChannel], mirakc_config['channels']).append(channel)
 
+        def get_tuner_command(device_path: Path) -> str:
+            if self._recpt1_compatible is True:
+                return f'recpt1 --device {device_path} ' + '{{{channel}}} - -'
+            else:
+                return f'recisdb tune --device {device_path} --channel ' + '{{{channel}}} -'
+
         # mirakc のチューナー設定ファイル用のデータ構造に変換
         for isdbt_tuner in self._isdbt_tuners:
             tuner: MirakcTuner = {
                 'name': isdbt_tuner.name,
                 'types': ['GR'],
-                'command': f'recisdb tune --device {isdbt_tuner.device_path} --channel ' + '{{{channel}}} -',
+                'command': get_tuner_command(isdbt_tuner.device_path),
                 'disabled': False,
             }
             cast(list[MirakcTuner], mirakc_config['tuners']).append(tuner)
@@ -565,7 +580,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
             tuner: MirakcTuner = {
                 'name': isdbs_tuner.name,
                 'types': ['BS', 'CS'],
-                'command': f'recisdb tune --device {isdbs_tuner.device_path} --channel ' + '{{{channel}}} -',
+                'command': get_tuner_command(isdbs_tuner.device_path),
                 'disabled': False,
             }
             cast(list[MirakcTuner], mirakc_config['tuners']).append(tuner)
@@ -573,7 +588,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
             tuner: MirakcTuner = {
                 'name': multi_tuner.name,
                 'types': ['GR', 'BS', 'CS'],
-                'command': f'recisdb tune --device {multi_tuner.device_path} --channel ' + '{{{channel}}} -',
+                'command': get_tuner_command(multi_tuner.device_path),
                 'disabled': False,
             }
             cast(list[MirakcTuner], mirakc_config['tuners']).append(tuner)
