@@ -45,7 +45,7 @@ class ServiceInfo(BaseModel):
         )
 
 class TransportStreamInfo(BaseModel):
-    physical_channel: str = 'Unknown'         # 物理チャンネル (ex: "T13", "BS23/TS3", "CS04")
+    physical_channel: str = 'Unknown'         # 物理チャンネル (ex: "T13", "BS23/TS3", "ND04")
     transport_stream_id: int = -1             # トランスポートストリーム ID
     network_id: int = -1                      # ネットワーク ID
     network_name: str = 'Unknown'             # 地上波: トランスポートストリーム名 / BS/CS: ネットワーク名

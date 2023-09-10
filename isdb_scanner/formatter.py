@@ -327,6 +327,7 @@ class MirakurunChannelsYmlFormatter(BaseFormatter):
                 mirakurun_name = ts_info.physical_channel
                 mirakurun_type = 'BS' if ts_info.network_id == 4 else 'CS'
                 mirakurun_channel = ts_info.physical_channel.replace('/TS', '_')  # BS23/TS3 -> BS23_3
+                mirakurun_channel = ts_info.physical_channel.replace('ND', 'CS')  # ND24 -> CS24
                 # 有料放送を除外する場合で、TS 内のサービスが空 (=TS内に無料放送サービスが存在しない) ならチャンネル自体を登録しない
                 # (有料放送を除外する場合は、この時点ですでに各 TS 情報のサービス情報から有料放送が除外されている)
                 ## 正確には有料放送の TS に無料独立データ放送が含まれる場合もあるので (WOWOW など) 、それらも除外してから判定する
@@ -543,6 +544,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
                 mirakc_name = ts_info.physical_channel
                 mirakc_type = 'BS' if ts_info.network_id == 4 else 'CS'
                 mirakc_channel = ts_info.physical_channel.replace('/TS', '_')  # BS23/TS3 -> BS23_3
+                mirakc_channel = ts_info.physical_channel.replace('ND', 'CS')  # ND24 -> CS24
                 # 有料放送を除外する場合で、TS 内のサービスが空 (=TS内に無料放送サービスが存在しない) ならチャンネル自体を登録しない
                 # (有料放送を除外する場合は、この時点ですでに各 TS 情報のサービス情報から有料放送が除外されている)
                 ## 正確には有料放送の TS に無料独立データ放送が含まれる場合もあるので (WOWOW など) 、それらも除外してから判定する

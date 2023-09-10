@@ -97,7 +97,7 @@ class TransportStreamAnalyzer(TransportStreamFile):
                     # ここからビット演算でトランスポンダ番号を取得する (CS110 ではスロット番号は常に 0 なので取得しない)
                     elif ts_info.network_id == 6 or ts_info.network_id == 7:
                         ts_info.satellite_transponder = (ts_info.transport_stream_id >> 4) & 0b11111
-                        ts_info.physical_channel = f'CS{ts_info.satellite_transponder:02d}'
+                        ts_info.physical_channel = f'ND{ts_info.satellite_transponder:02d}'
                     if 0x7880 <= ts_info.network_id <= 0x7FE8:
                         # TS 情報記述子 (地上波のみ)
                         for ts_information in transport_stream.descriptors.get(TSInformationDescriptor, []):

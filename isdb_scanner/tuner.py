@@ -127,14 +127,14 @@ class ISDBTuner:
         assert False, f'Unknown tuner device: {self.device_path}'
 
 
-    def tune(self, physical_channel: str, recording_time: float = 10.0, tune_timeout: float = 7.0) -> bytearray:
+    def tune(self, physical_channel_recisdb: str, recording_time: float = 10.0, tune_timeout: float = 7.0) -> bytearray:
         """
         チューナーデバイスから指定された物理チャンネルを受信し、選局/受信できなかった場合は例外を送出する
         録画時間にはチューナーオープンに掛かった時間を含まない
         選局タイムアウト発生時、チューナーのクローズに時間がかかる関係で最小でも合計 7 秒程度の時間が掛かる
 
         Args:
-            physical_channel (str): 物理チャンネル (ex: "T13", "BS23_3", "CS04")
+            physical_channel_recisdb (str): recisdb が受け付ける物理チャンネル (ex: "T13", "BS23_3", "CS04")
             recording_time (float, optional): 録画時間 (秒). Defaults to 10.0.
             tune_timeout (float, optional): 選局 (チューナーオープン) のタイムアウト時間 (秒). Defaults to 7.0.
 
@@ -151,7 +151,7 @@ class ISDBTuner:
 
         # recisdb (チューナープロセス) を起動
         process = subprocess.Popen(
-            ['recisdb', 'tune', '--device', str(self.device_path), '--channel', physical_channel, '--time', str(recording_time), '-'],
+            ['recisdb', 'tune', '--device', str(self.device_path), '--channel', physical_channel_recisdb, '--time', str(recording_time), '-'],
             stdout = subprocess.PIPE,
             stderr = subprocess.PIPE,
         )
@@ -237,13 +237,13 @@ class ISDBTuner:
         return stdout
 
 
-    def getSignalLevel(self, physical_channel: str) -> tuple[subprocess.Popen[bytes], Iterator[float]]:
+    def getSignalLevel(self, physical_channel_recisdb: str) -> tuple[subprocess.Popen[bytes], Iterator[float]]:
         """
         チューナーデバイスから指定された物理チャンネルを受信し、イテレータで信号レベルを返す
         この関数はイテレータを呼び終わってもプロセスを終了しないので、呼び出し側で明示的にプロセスを終了する必要がある
 
         Args:
-            physical_channel (str): 物理チャンネル (ex: "T13", "BS23_3", "CS04")
+            physical_channel_recisdb (str): recisdb が受け付ける物理チャンネル (ex: "T13", "BS23_3", "CS04")
 
         Returns:
             tuple[subprocess.Popen, Iterator[float]]: チューナープロセスと信号レベルを返すイテレータ
@@ -251,7 +251,7 @@ class ISDBTuner:
 
         # recisdb (チューナープロセス) を起動
         process = subprocess.Popen(
-            ['recisdb', 'checksignal', '--device', str(self.device_path), '--channel', physical_channel],
+            ['recisdb', 'checksignal', '--device', str(self.device_path), '--channel', physical_channel_recisdb],
             stdout = subprocess.PIPE,
             stderr = None if self.output_recisdb_log is True else subprocess.DEVNULL,
         )
@@ -285,19 +285,19 @@ class ISDBTuner:
         return process, iterator()
 
 
-    def getSignalLevelMean(self, physical_channel: str) -> float | None:
+    def getSignalLevelMean(self, physical_channel_recisdb: str) -> float | None:
         """
         チューナーデバイスから指定された物理チャンネルを受信し、5回の平均信号レベルを返す
 
         Args:
-            physical_channel (str): 物理チャンネル (ex: "T13", "BS23_3", "CS04")
+            physical_channel_recisdb (str): recisdb が受け付ける物理チャンネル (ex: "T13", "BS23_3", "CS04")
 
         Returns:
             float | None: 平均信号レベル (選局失敗時は None)
         """
 
         # 信号レベルを取得するイテレータを取得
-        process, iterator = self.getSignalLevel(physical_channel)
+        process, iterator = self.getSignalLevel(physical_channel_recisdb)
 
         # 5回分の信号レベルを取得
         # もし信号レベルの取得中にプロセスが終了した場合は選局に失敗しているので None を返す
