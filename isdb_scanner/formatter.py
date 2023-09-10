@@ -159,21 +159,21 @@ class EDCBChSet4TxtFormatter(BaseFormatter):
                     ch += 1
                     continue
                 for service in ts_info.services:
-                    ts_name_prefix = ''
+                    ch_name_prefix = ''
                     space = 0
-                    if 0x7880 <= ts_info.network_id <= 0x7FE8:
+                    if ts_info.type == 'Terrestrial':
                         # 地上波
-                        ts_name_prefix = 'Terrestrial'
+                        ch_name_prefix = 'Terrestrial'
                         space = 0
-                    elif ts_info.network_id == 4:
+                    elif ts_info.type == 'BS':
                         # BS
-                        ts_name_prefix = 'BS'
+                        ch_name_prefix = 'BS'
                         space = 1
-                    elif ts_info.network_id == 6 or ts_info.network_id == 7:
+                    elif ts_info.type == 'CS1' or ts_info.type == 'CS2':
                         # CS
-                        ts_name_prefix = 'CS'
+                        ch_name_prefix = 'CS'
                         space = 2
-                    ch_name = f'{ts_name_prefix}:{ts_info.physical_channel}'
+                    ch_name = f'{ch_name_prefix}:{ts_info.physical_channel}'
                     partial_flag = 1 if service.is_oneseg else 0
                     use_view_flag = 1 if service.isVideoServiceType() else 0
                     remocon_id = ts_info.remote_control_key_id if ts_info.remote_control_key_id is not None else 0
@@ -319,25 +319,24 @@ class MirakurunChannelsYmlFormatter(BaseFormatter):
         # Mirakurun のチャンネル設定ファイル用のデータ構造に変換
         mirakurun_channels: list[MirakurunChannel] = []
         for ts_info in ts_infos:
-            if 0x7880 <= ts_info.network_id <= 0x7FE8:
+            if ts_info.type == 'Terrestrial':
                 mirakurun_name = ts_info.network_name
                 mirakurun_type = 'GR'
-                mirakurun_channel = ts_info.physical_channel
             else:
                 mirakurun_name = ts_info.physical_channel
-                mirakurun_type = 'BS' if ts_info.network_id == 4 else 'CS'
-                mirakurun_channel = ts_info.physical_channel.replace('/TS', '_')  # BS23/TS3 -> BS23_3
-                mirakurun_channel = ts_info.physical_channel.replace('ND', 'CS')  # ND24 -> CS24
+                mirakurun_type = 'BS' if ts_info.type == 'BS' else 'CS'
                 # 有料放送を除外する場合で、TS 内のサービスが空 (=TS内に無料放送サービスが存在しない) ならチャンネル自体を登録しない
                 # (有料放送を除外する場合は、この時点ですでに各 TS 情報のサービス情報から有料放送が除外されている)
                 ## 正確には有料放送の TS に無料独立データ放送が含まれる場合もあるので (WOWOW など) 、それらも除外してから判定する
                 ## 独立データ放送の service_type は 0xC0 なので、それ以外のサービスが空かどうかで判定する
                 if self._exclude_pay_tv is True and len([service for service in ts_info.services if service.service_type != 0xC0]) == 0:
                     continue
-            # recpt1 互換の物理チャンネル指定フォーマットに変換 (指定されている場合のみ)
             if self._recpt1_compatible is True:
-                mirakurun_channel = mirakurun_channel.replace('T', '')  # T13 -> 13
-                mirakurun_channel = mirakurun_channel.replace('CS0', 'CS')  # CS04 -> CS4
+                # recpt1 互換の物理チャンネル指定フォーマット
+                mirakurun_channel = ts_info.physical_channel_recpt1
+            else:
+                # recisdb 互換の物理チャンネル指定フォーマット
+                mirakurun_channel = ts_info.physical_channel_recisdb
             channel: MirakurunChannel = {
                 'name': mirakurun_name,
                 'type': mirakurun_type,
@@ -536,25 +535,24 @@ class MirakcConfigYmlFormatter(BaseFormatter):
 
         # mirakc のチャンネル設定ファイル用のデータ構造に変換
         for ts_info in ts_infos:
-            if 0x7880 <= ts_info.network_id <= 0x7FE8:
+            if ts_info.type == 'Terrestrial':
                 mirakc_name = ts_info.network_name
                 mirakc_type = 'GR'
-                mirakc_channel = ts_info.physical_channel
             else:
                 mirakc_name = ts_info.physical_channel
-                mirakc_type = 'BS' if ts_info.network_id == 4 else 'CS'
-                mirakc_channel = ts_info.physical_channel.replace('/TS', '_')  # BS23/TS3 -> BS23_3
-                mirakc_channel = ts_info.physical_channel.replace('ND', 'CS')  # ND24 -> CS24
+                mirakc_type = 'BS' if ts_info.type == 'BS' else 'CS'
                 # 有料放送を除外する場合で、TS 内のサービスが空 (=TS内に無料放送サービスが存在しない) ならチャンネル自体を登録しない
                 # (有料放送を除外する場合は、この時点ですでに各 TS 情報のサービス情報から有料放送が除外されている)
                 ## 正確には有料放送の TS に無料独立データ放送が含まれる場合もあるので (WOWOW など) 、それらも除外してから判定する
                 ## 独立データ放送の service_type は 0xC0 なので、それ以外のサービスが空かどうかで判定する
                 if self._exclude_pay_tv is True and len([service for service in ts_info.services if service.service_type != 0xC0]) == 0:
                     continue
-            # recpt1 互換の物理チャンネル指定フォーマットに変換 (指定されている場合のみ)
             if self._recpt1_compatible is True:
-                mirakc_channel = mirakc_channel.replace('T', '')  # T13 -> 13
-                mirakc_channel = mirakc_channel.replace('CS0', 'CS')  # CS04 -> CS4
+                # recpt1 互換の物理チャンネル指定フォーマット
+                mirakc_channel = ts_info.physical_channel_recpt1
+            else:
+                # recisdb 互換の物理チャンネル指定フォーマット
+                mirakc_channel = ts_info.physical_channel_recisdb
             channel: MirakcChannel = {
                 'name': mirakc_name,
                 'type': mirakc_type,

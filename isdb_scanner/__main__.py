@@ -62,16 +62,20 @@ def main(
     scan_start_time = time.time()
 
     # トータルでスキャンする必要がある物理チャンネル数
-    ## 13ch - 62ch + BS01_0 (BS) + CS02 (CS1) + CS04 (CS2)
+    ## 13ch - 62ch + BS01/TS0 (BS) + ND02 (CS1) + ND04 (CS2)
     ## 地上波はフルスキャン、衛星放送はそれぞれのネットワークごとの最初の物理チャンネルのみをスキャン
     ## 衛星放送では同一ネットワーク内の異なるチャンネルの情報を一括で取得できるため、スキャンは 3 回のみで済む
     ## BS のデフォルト TS は運用規定で 0x40F1 (NHKBS1: BS15/TS0) だが、手元環境ではなぜか他 TS と比べ NIT の送出間隔が不安定 (?) で
     ## 20 秒程度録画しないと NIT を確実に取得できないため、ここでは BS01/TS0 (BS朝日) をスキャンする
-    scan_terrestrial_physical_channels = [f'T{i}' for i in range(13, 63)]
-    if exclude_pay_tv is True:
-        scan_satellite_physical_channels = ['BS01_0']
-    else:
-        scan_satellite_physical_channels = ['BS01_0', 'CS02', 'CS04']
+    scan_terrestrial_physical_channels = [TransportStreamInfo(physical_channel=f'T{i}') for i in range(13, 63)]
+    scan_satellite_physical_channels = [
+        TransportStreamInfo(physical_channel='BS01/TS0'),
+    ]
+    if exclude_pay_tv is False:  # 有料放送を除外しない場合は CS1/CS2 もスキャン
+        scan_satellite_physical_channels += [
+            TransportStreamInfo(physical_channel='ND02'),
+            TransportStreamInfo(physical_channel='ND04'),
+        ]
     total_channel_count = len(scan_terrestrial_physical_channels) + len(scan_satellite_physical_channels)
 
     # スキャンし終えたチャンネル数 (受信できたかは問わない)
@@ -117,18 +121,18 @@ def main(
                         continue
                     # チューナーの起動と TS 解析を実行
                     print(Rule(characters='-', style=Style(color='#E33157')))
-                    print(f'  Channel: [bright_blue]Terrestrial - {channel.replace("T", "")}ch[/bright_blue]')
+                    print(f'  Channel: [bright_blue]Terrestrial - {channel.physical_channel.replace("T", "")}ch[/bright_blue]')
                     print(f'    Tuner: [green]{tuner.name}[/green] ({tuner.device_path})')
                     try:
                         # 録画時間: 2.25 秒 (地上波の SI 送出間隔は最大 2 秒周期)
                         start_time = time.time()
                         try:
                             tuner.output_recisdb_log = output_recisdb_log
-                            ts_stream_data = tuner.tune(channel, recording_time=2.25)
+                            ts_stream_data = tuner.tune(channel.physical_channel_recisdb, recording_time=2.25)
                         finally:
                             print(f'Tune Time: {time.time() - start_time:.2f} seconds')
                         # トランスポートストリームとサービスの情報を解析
-                        ts_infos = TransportStreamAnalyzer(ts_stream_data, channel).analyze()
+                        ts_infos = TransportStreamAnalyzer(ts_stream_data, channel.physical_channel).analyze()
                         tr_ts_infos.extend(ts_infos)
                         for ts_info in ts_infos:
                             print(f'[green]Transport Stream[/green]: {ts_info}')
@@ -191,10 +195,10 @@ def main(
                     if result is None:
                         continue
                     signal_levels[ts_info.physical_channel] = result
-                    print(f'Physical Channel: {ts_info.physical_channel} | Signal Level: {result:.2f} dB')
+                    print(f'Physical Channel: {ts_info.physical_channel.replace("T", "")}ch | Signal Level: {result:.2f} dB')
                     break  # 信号レベルが取得できたら次の物理チャンネルへ
                 if signal_levels[ts_info.physical_channel] == -99.99:
-                    print(f'Physical Channel: {ts_info.physical_channel} | Signal Level: Failed to get signal level')
+                    print(f'Physical Channel: {ts_info.physical_channel.replace("T", "")}ch | Signal Level: Failed to get signal level')
 
             # 信号レベルが最も高い物理チャンネル以外の物理チャンネルを terrestrial_ts_infos から削除
             max_signal_level = max(signal_levels.values())
@@ -203,7 +207,8 @@ def main(
                 if signal_level != max_signal_level:
                     tr_ts_infos.remove(ts_info)
                 else:
-                    print(f'[green]Selected Physical Channel: {ts_info.physical_channel} | Signal Level: {signal_level:.2f} dB[/green]')
+                    print(f'[green]Selected Physical Channel: {ts_info.physical_channel.replace("T", "")}ch | '
+                          f'Signal Level: {signal_level:.2f} dB[/green]')
 
         # 物理チャンネル順にソート
         tr_ts_infos = sorted(tr_ts_infos, key=lambda x: x.physical_channel)
@@ -236,23 +241,22 @@ def main(
                 if tuner.last_tuner_opening_failed is True:
                     continue
                 # チューナーの起動と TS 解析を実行
-                channel_type = 'BS' if channel.startswith('BS') else ('CS1' if channel.startswith('CS02') else 'CS2')
                 print(Rule(characters='-', style=Style(color='#E33157')))
-                print(f' Channel: [bright_blue]{channel_type} (All channels)[/bright_blue]')
+                print(f' Channel: [bright_blue]{channel.type} (All channels)[/bright_blue]')
                 print(f'   Tuner: [green]{tuner.name}[/green] ({tuner.device_path})')
                 try:
                     # 録画時間: 11 秒 (BS・CS110 の SI 送出間隔は最大 10 秒周期)
                     start_time = time.time()
                     try:
                         tuner.output_recisdb_log = output_recisdb_log
-                        ts_stream_data = tuner.tune(channel, recording_time=11)
+                        ts_stream_data = tuner.tune(channel.physical_channel_recisdb, recording_time=11)
                     finally:
                         print(f'Tune Time: {time.time() - start_time:.2f} seconds')
                     # トランスポートストリームとサービスの情報を解析
-                    ts_infos = TransportStreamAnalyzer(ts_stream_data, channel).analyze()
-                    if channel.startswith('BS'):
+                    ts_infos = TransportStreamAnalyzer(ts_stream_data, channel.physical_channel).analyze()
+                    if channel.type == 'BS':
                         bs_ts_infos.extend(ts_infos)
-                    elif channel.startswith('CS'):
+                    elif channel.type == 'CS1' or channel.type == 'CS2':
                         cs_ts_infos.extend(ts_infos)
                     for ts_info in ts_infos:
                         print(f'[green]Transport Stream[/green]: {ts_info}')

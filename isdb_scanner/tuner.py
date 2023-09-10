@@ -134,7 +134,7 @@ class ISDBTuner:
         選局タイムアウト発生時、チューナーのクローズに時間がかかる関係で最小でも合計 7 秒程度の時間が掛かる
 
         Args:
-            physical_channel_recisdb (str): recisdb が受け付ける物理チャンネル (ex: "T13", "BS23_3", "CS04")
+            physical_channel_recisdb (str): recisdb が受け付けるフォーマットの物理チャンネル (ex: "T13", "BS23_3", "CS04")
             recording_time (float, optional): 録画時間 (秒). Defaults to 10.0.
             tune_timeout (float, optional): 選局 (チューナーオープン) のタイムアウト時間 (秒). Defaults to 7.0.
 
@@ -243,7 +243,7 @@ class ISDBTuner:
         この関数はイテレータを呼び終わってもプロセスを終了しないので、呼び出し側で明示的にプロセスを終了する必要がある
 
         Args:
-            physical_channel_recisdb (str): recisdb が受け付ける物理チャンネル (ex: "T13", "BS23_3", "CS04")
+            physical_channel_recisdb (str): recisdb が受け付けるフォーマットの物理チャンネル (ex: "T13", "BS23_3", "CS04")
 
         Returns:
             tuple[subprocess.Popen, Iterator[float]]: チューナープロセスと信号レベルを返すイテレータ
@@ -290,7 +290,7 @@ class ISDBTuner:
         チューナーデバイスから指定された物理チャンネルを受信し、5回の平均信号レベルを返す
 
         Args:
-            physical_channel_recisdb (str): recisdb が受け付ける物理チャンネル (ex: "T13", "BS23_3", "CS04")
+            physical_channel_recisdb (str): recisdb が受け付けるフォーマットの物理チャンネル (ex: "T13", "BS23_3", "CS04")
 
         Returns:
             float | None: 平均信号レベル (選局失敗時は None)

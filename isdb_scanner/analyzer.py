@@ -35,7 +35,7 @@ class TransportStreamAnalyzer(TransportStreamFile):
 
         Args:
             ts_stream_data (bytearray): チューナーから受信した TS ストリーム
-            tuned_physical_channel (str): TS ストリームの受信時に選局した物理チャンネル (ex: "T13", "BS23_3", "CS04")
+            tuned_physical_channel (str): TS ストリームの受信時に選局した物理チャンネル (ex: "T13", "BS23/TS3", "ND04")
             chunk_size (int, optional): チャンクサイズ. Defaults to 10000.
         """
 
