@@ -9,7 +9,7 @@ from typing import Literal
 
 # Pydantic モデルの定義
 
-ChannelType = Literal['Terrestrial', 'BS', 'CS1', 'CS2']
+BroadcastType = Literal['Terrestrial', 'BS', 'CS1', 'CS2']
 
 class ServiceInfo(BaseModel):
     channel_number: str = 'Unknown'  # 3桁チャンネル番号 (BS/CS ではサービス ID と同一)
@@ -49,10 +49,19 @@ class ServiceInfo(BaseModel):
         )
 
 class TransportStreamInfo(BaseModel):
+    physical_channel: str = 'Unknown'           # 物理チャンネル (ex: "T13", "BS23/TS3", "ND04")
+    transport_stream_id: int = -1               # トランスポートストリーム ID
+    network_id: int = -1                        # ネットワーク ID
+    network_name: str = 'Unknown'               # 地上波: トランスポートストリーム名 / BS/CS: ネットワーク名
+    remote_control_key_id: int | None = None    # 地上波: リモコンキー ID
+    satellite_frequency: float | None = None    # BS/CS: 周波数 (単位: GHz)
+    satellite_transponder: int | None = None    # BS/CS: トランスポンダ番号
+    satellite_slot_number: int | None = None    # BS: いわゆるスロット番号 (厳密には相対 TS 番号)
+    services: list[ServiceInfo] = []
 
     @computed_field
     @property
-    def type(self) -> ChannelType:              # チャンネル種別
+    def broadcast_type(self) -> BroadcastType:  # 放送種別
         if 0x7880 <= self.network_id <= 0x7FE8 or self.physical_channel.startswith('T'):
             return 'Terrestrial'
         elif self.network_id == 4 or self.physical_channel.startswith('BS'):
@@ -64,16 +73,14 @@ class TransportStreamInfo(BaseModel):
         else:
             assert False, f'Unreachable: {self.physical_channel}'
 
-    physical_channel: str = 'Unknown'           # 物理チャンネル (ex: "T13", "BS23/TS3", "ND04")
-
     @computed_field
     @property
     def physical_channel_recisdb(self) -> str:  # recisdb が受け付けるフォーマットの物理チャンネル
-        if self.type == 'Terrestrial':
+        if self.broadcast_type == 'Terrestrial':
             return self.physical_channel  # T13 -> T13
-        elif self.type == 'BS':
+        elif self.broadcast_type == 'BS':
             return self.physical_channel.replace('/TS', '_')  # BS23/TS3 -> BS23_3
-        elif self.type == 'CS1' or self.type == 'CS2':
+        elif self.broadcast_type == 'CS1' or self.broadcast_type == 'CS2':
             return self.physical_channel.replace('ND', 'CS')  # ND04 -> CS04
         else:
             assert False, f'Unreachable: {self.physical_channel}'
@@ -81,30 +88,21 @@ class TransportStreamInfo(BaseModel):
     @computed_field
     @property
     def physical_channel_recpt1(self) -> str:   # recpt1 が受け付けるフォーマットの物理チャンネル
-        if self.type == 'Terrestrial':
+        if self.broadcast_type == 'Terrestrial':
             return self.physical_channel.replace('T', '')  # T13 -> 13
-        elif self.type == 'BS':
+        elif self.broadcast_type == 'BS':
             return self.physical_channel.replace('/TS', '_')  # BS23/TS3 -> BS23_3
-        elif self.type == 'CS1' or self.type == 'CS2':
+        elif self.broadcast_type == 'CS1' or self.broadcast_type == 'CS2':
             return self.physical_channel.replace('ND', 'CS').replace('CS0', 'CS')  # ND04 -> CS4
         else:
             assert False, f'Unreachable: {self.physical_channel}'
 
-    transport_stream_id: int = -1               # トランスポートストリーム ID
-    network_id: int = -1                        # ネットワーク ID
-    network_name: str = 'Unknown'               # 地上波: トランスポートストリーム名 / BS/CS: ネットワーク名
-    remote_control_key_id: int | None = None    # 地上波: リモコンキー ID
-    satellite_frequency: float | None = None    # BS/CS: 周波数 (単位: GHz)
-    satellite_transponder: int | None = None    # BS/CS: トランスポンダ番号
-    satellite_slot_number: int | None = None    # BS: いわゆるスロット番号 (厳密には相対 TS 番号)
-    services: list[ServiceInfo] = []
-
     def __str__(self) -> str:
         physical_channel = self.physical_channel
-        if self.type == 'Terrestrial':
+        if self.broadcast_type == 'Terrestrial':
             physical_channel = self.physical_channel.replace('T', '') + 'ch'
-        message = f'{self.type} - {physical_channel} / TSID: {self.transport_stream_id} '
-        if self.type == 'Terrestrial':
+        message = f'{self.broadcast_type} - {physical_channel} / TSID: {self.transport_stream_id} '
+        if self.broadcast_type == 'Terrestrial':
             message += f'| {self.remote_control_key_id:02d}: {self.network_name}'
         else:
             message += f'/ Frequency: {self.satellite_frequency:.5f} GHz | {self.network_name}'

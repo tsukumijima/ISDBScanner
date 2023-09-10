@@ -161,15 +161,15 @@ class EDCBChSet4TxtFormatter(BaseFormatter):
                 for service in ts_info.services:
                     ch_name_prefix = ''
                     space = 0
-                    if ts_info.type == 'Terrestrial':
+                    if ts_info.broadcast_type == 'Terrestrial':
                         # 地上波
                         ch_name_prefix = 'Terrestrial'
                         space = 0
-                    elif ts_info.type == 'BS':
+                    elif ts_info.broadcast_type == 'BS':
                         # BS
                         ch_name_prefix = 'BS'
                         space = 1
-                    elif ts_info.type == 'CS1' or ts_info.type == 'CS2':
+                    elif ts_info.broadcast_type == 'CS1' or ts_info.broadcast_type == 'CS2':
                         # CS
                         ch_name_prefix = 'CS'
                         space = 2
@@ -319,12 +319,12 @@ class MirakurunChannelsYmlFormatter(BaseFormatter):
         # Mirakurun のチャンネル設定ファイル用のデータ構造に変換
         mirakurun_channels: list[MirakurunChannel] = []
         for ts_info in ts_infos:
-            if ts_info.type == 'Terrestrial':
+            if ts_info.broadcast_type == 'Terrestrial':
                 mirakurun_name = ts_info.network_name
                 mirakurun_type = 'GR'
             else:
                 mirakurun_name = ts_info.physical_channel
-                mirakurun_type = 'BS' if ts_info.type == 'BS' else 'CS'
+                mirakurun_type = 'BS' if ts_info.broadcast_type == 'BS' else 'CS'
                 # 有料放送を除外する場合で、TS 内のサービスが空 (=TS内に無料放送サービスが存在しない) ならチャンネル自体を登録しない
                 # (有料放送を除外する場合は、この時点ですでに各 TS 情報のサービス情報から有料放送が除外されている)
                 ## 正確には有料放送の TS に無料独立データ放送が含まれる場合もあるので (WOWOW など) 、それらも除外してから判定する
@@ -535,12 +535,12 @@ class MirakcConfigYmlFormatter(BaseFormatter):
 
         # mirakc のチャンネル設定ファイル用のデータ構造に変換
         for ts_info in ts_infos:
-            if ts_info.type == 'Terrestrial':
+            if ts_info.broadcast_type == 'Terrestrial':
                 mirakc_name = ts_info.network_name
                 mirakc_type = 'GR'
             else:
                 mirakc_name = ts_info.physical_channel
-                mirakc_type = 'BS' if ts_info.type == 'BS' else 'CS'
+                mirakc_type = 'BS' if ts_info.broadcast_type == 'BS' else 'CS'
                 # 有料放送を除外する場合で、TS 内のサービスが空 (=TS内に無料放送サービスが存在しない) ならチャンネル自体を登録しない
                 # (有料放送を除外する場合は、この時点ですでに各 TS 情報のサービス情報から有料放送が除外されている)
                 ## 正確には有料放送の TS に無料独立データ放送が含まれる場合もあるので (WOWOW など) 、それらも除外してから判定する

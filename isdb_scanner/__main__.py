@@ -121,8 +121,8 @@ def main(
                         continue
                     # チューナーの起動と TS 解析を実行
                     print(Rule(characters='-', style=Style(color='#E33157')))
-                    print(f'  Channel: [bright_blue]Terrestrial - {channel.physical_channel.replace("T", "")}ch[/bright_blue]')
-                    print(f'    Tuner: [green]{tuner.name}[/green] ({tuner.device_path})')
+                    print(f'   Channel: [bright_blue]Terrestrial - {channel.physical_channel.replace("T", "")}ch[/bright_blue]')
+                    print(f'     Tuner: [green]{tuner.name}[/green] ({tuner.device_path})')
                     try:
                         # 録画時間: 2.25 秒 (地上波の SI 送出間隔は最大 2 秒周期)
                         start_time = time.time()
@@ -242,8 +242,8 @@ def main(
                     continue
                 # チューナーの起動と TS 解析を実行
                 print(Rule(characters='-', style=Style(color='#E33157')))
-                print(f' Channel: [bright_blue]{channel.type} (All channels)[/bright_blue]')
-                print(f'   Tuner: [green]{tuner.name}[/green] ({tuner.device_path})')
+                print(f'  Channel: [bright_blue]{channel.broadcast_type} (All channels)[/bright_blue]')
+                print(f'    Tuner: [green]{tuner.name}[/green] ({tuner.device_path})')
                 try:
                     # 録画時間: 11 秒 (BS・CS110 の SI 送出間隔は最大 10 秒周期)
                     start_time = time.time()
@@ -254,9 +254,9 @@ def main(
                         print(f'Tune Time: {time.time() - start_time:.2f} seconds')
                     # トランスポートストリームとサービスの情報を解析
                     ts_infos = TransportStreamAnalyzer(ts_stream_data, channel.physical_channel).analyze()
-                    if channel.type == 'BS':
+                    if channel.broadcast_type == 'BS':
                         bs_ts_infos.extend(ts_infos)
-                    elif channel.type == 'CS1' or channel.type == 'CS2':
+                    elif channel.broadcast_type == 'CS1' or channel.broadcast_type == 'CS2':
                         cs_ts_infos.extend(ts_infos)
                     for ts_info in ts_infos:
                         print(f'[green]Transport Stream[/green]: {ts_info}')
