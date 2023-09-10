@@ -62,15 +62,16 @@ def main(
     scan_start_time = time.time()
 
     # トータルでスキャンする必要がある物理チャンネル数
-    ## 13ch - 62ch + BS15_0 (BS) + CS02 (CS1) + CS04 (CS2)
+    ## 13ch - 62ch + BS01_0 (BS) + CS02 (CS1) + CS04 (CS2)
     ## 地上波はフルスキャン、衛星放送はそれぞれのネットワークごとの最初の物理チャンネルのみをスキャン
     ## 衛星放送では同一ネットワーク内の異なるチャンネルの情報を一括で取得できるため、スキャンは 3 回のみで済む
-    ## BS のデフォルト TS は運用規定で 0x40F1 (BS15/TS0) であるため、BS15_0 をスキャンしている
+    ## BS のデフォルト TS は運用規定で 0x40F1 (NHKBS1: BS15/TS0) だが、手元環境ではなぜか他 TS と比べ NIT の送出間隔が不安定 (?) で
+    ## 20 秒程度録画しないと NIT を確実に取得できないため、ここでは BS01/TS0 (BS朝日) をスキャンする
     scan_terrestrial_physical_channels = [f'T{i}' for i in range(13, 63)]
     if exclude_pay_tv is True:
-        scan_satellite_physical_channels = ['BS15_0']
+        scan_satellite_physical_channels = ['BS01_0']
     else:
-        scan_satellite_physical_channels = ['BS15_0', 'CS02', 'CS04']
+        scan_satellite_physical_channels = ['BS01_0', 'CS02', 'CS04']
     total_channel_count = len(scan_terrestrial_physical_channels) + len(scan_satellite_physical_channels)
 
     # スキャンし終えたチャンネル数 (受信できたかは問わない)
@@ -240,11 +241,11 @@ def main(
                 print(f' Channel: [bright_blue]{channel_type} (All channels)[/bright_blue]')
                 print(f'   Tuner: [green]{tuner.name}[/green] ({tuner.device_path})')
                 try:
-                    # 録画時間: 10.25 秒 (BS・CS110 の SI 送出間隔は最大 10 秒周期)
+                    # 録画時間: 11 秒 (BS・CS110 の SI 送出間隔は最大 10 秒周期)
                     start_time = time.time()
                     try:
                         tuner.output_recisdb_log = output_recisdb_log
-                        ts_stream_data = tuner.tune(channel, recording_time=10.25)
+                        ts_stream_data = tuner.tune(channel, recording_time=11)
                     finally:
                         print(f'Tune Time: {time.time() - start_time:.2f} seconds')
                     # トランスポートストリームとサービスの情報を解析
