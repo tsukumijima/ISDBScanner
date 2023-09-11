@@ -13,6 +13,7 @@ devtools = "^0.11.0"
 pydantic = "^2.1.1"
 ruamel-yaml = "^0.17.32"
 typer = {extras = ["all"], version = "^0.9.0"}
+typing-extensions = "^4.7.1"
 
 [tool.poetry.group.dev.dependencies]
 pyinstaller = "^5.13.2"

@@ -6,6 +6,7 @@ from io import StringIO
 from pathlib import Path
 from ruamel.yaml import YAML
 from typing import Any, cast, TypedDict
+from typing_extensions import NotRequired
 
 from isdb_scanner.constants import TransportStreamInfo
 from isdb_scanner.constants import TransportStreamInfoList
@@ -269,7 +270,7 @@ class MirakurunChannel(TypedDict):
     name: str
     type: str
     channel: str
-    isDisabled: bool
+    isDisabled: NotRequired[bool]
 
 
 class MirakurunChannelsYmlFormatter(BaseFormatter):
@@ -361,7 +362,8 @@ class MirakurunTuner(TypedDict):
     name: str
     types: list[str]
     command: str
-    isDisabled: bool
+    decoder: NotRequired[str]
+    isDisabled: NotRequired[bool]
 
 
 class MirakurunTunersYmlFormatter(BaseFormatter):
@@ -414,24 +416,36 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
                 'name': isdbt_tuner.name,
                 'types': ['GR'],
                 'command': get_tuner_command(isdbt_tuner.device_path),
-                'isDisabled': False,
             }
+            if self._recpt1_compatible is True:
+                # recpt1 にも B25 デコード機能はあるが、安定性に難があるらしいので arib-b25-stream-test を使用する
+                # recisdb は既定で自動的にデコードを行うため、指定する必要はない
+                tuner['decoder'] = 'arib-b25-stream-test'
+            tuner['isDisabled'] = False
             mirakurun_tuners.append(tuner)
         for isdbs_tuner in self._isdbs_tuners:
             tuner: MirakurunTuner = {
                 'name': isdbs_tuner.name,
                 'types': ['BS', 'CS'],
                 'command': get_tuner_command(isdbs_tuner.device_path),
-                'isDisabled': False,
             }
+            if self._recpt1_compatible is True:
+                # recpt1 にも B25 デコード機能はあるが、安定性に難があるらしいので arib-b25-stream-test を使用する
+                # recisdb は既定で自動的にデコードを行うため、指定する必要はない
+                tuner['decoder'] = 'arib-b25-stream-test'
+            tuner['isDisabled'] = False
             mirakurun_tuners.append(tuner)
         for multi_tuner in self._multi_tuners:
             tuner: MirakurunTuner = {
                 'name': multi_tuner.name,
                 'types': ['GR', 'BS', 'CS'],
                 'command': get_tuner_command(multi_tuner.device_path),
-                'isDisabled': False,
             }
+            if self._recpt1_compatible is True:
+                # recpt1 にも B25 デコード機能はあるが、安定性に難があるらしいので arib-b25-stream-test を使用する
+                # recisdb は既定で自動的にデコードを行うため、指定する必要はない
+                tuner['decoder'] = 'arib-b25-stream-test'
+            tuner['isDisabled'] = False
             mirakurun_tuners.append(tuner)
 
         # YAML に変換
@@ -451,13 +465,13 @@ class MirakcChannel(TypedDict):
     name: str
     type: str
     channel: str
-    disabled: bool
+    disabled: NotRequired[bool]
 
 class MirakcTuner(TypedDict):
     name: str
     types: list[str]
-    command: str
-    disabled: bool
+    command: str  # mirakc には decoder の項目がなく、別途 config.yml の filters.decode-filter.command として指定する
+    disabled: NotRequired[bool]
 
 
 class MirakcConfigYmlFormatter(BaseFormatter):
@@ -524,6 +538,14 @@ class MirakcConfigYmlFormatter(BaseFormatter):
 
         # ひな形の設定データ
         mirakc_config = copy.deepcopy(self._mirakc_config_template)  # ひな型が変更されないようにコピーする
+
+        # recpt1 にも B25 デコード機能はあるが、安定性に難があるらしいので arib-b25-stream-test を使用する
+        if self._recpt1_compatible is True:
+            mirakc_config['filters'] = {
+                'decode-filter': {
+                    'command': 'arib-b25-stream-test',
+                },
+            }
 
         # 各 TS 情報を物理チャンネル昇順でソートして結合
         ## この時点で処理対象が地上波チューナーなら BS/CS の TS 情報、衛星チューナーなら地上波の TS 情報として空のリストが渡されているはず
