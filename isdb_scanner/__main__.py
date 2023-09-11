@@ -121,8 +121,8 @@ def main(
                         continue
                     # チューナーの起動と TS 解析を実行
                     print(Rule(characters='-', style=Style(color='#E33157')))
-                    print(f'   Channel: [bright_blue]Terrestrial - {channel.physical_channel.replace("T", "")}ch[/bright_blue]')
-                    print(f'     Tuner: [green]{tuner.name}[/green] ({tuner.device_path})')
+                    print(f'  Channel: [bright_blue]Terrestrial - {channel.physical_channel.replace("T", "")}ch[/bright_blue]')
+                    print(f'    Tuner: [green]{tuner.name}[/green] ({tuner.device_path})')
                     try:
                         # 録画時間: 2.25 秒 (地上波の SI 送出間隔は最大 2 秒周期)
                         start_time = time.time()
