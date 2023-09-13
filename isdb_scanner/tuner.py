@@ -33,6 +33,10 @@ class ISDBTuner:
             output_recisdb_log (bool, optional): recisdb のログを出力するかどうか. Defaults to False.
         """
 
+        # 操作対象のデバイスファイルは最低でもキャラクタデバイスである必要がある
+        # チューナードライバが chardev 版か DVB 版かに関わらず、デバイスファイルはキャラクタデバイスになる
+        assert device_path.exists() and device_path.is_char_device(), f'Invalid tuner device: {device_path}'
+
         self.device_path = device_path
         self.output_recisdb_log = output_recisdb_log
         self.type, self.name = self.__getTunerDeviceInfo()
@@ -388,9 +392,9 @@ class ISDBTuner:
         tuners: list[ISDBTuner] = []
         for device_path in ISDBT_TUNER_DEVICE_PATHS:
             device_path = Path(device_path)
-            if not device_path.exists():
-                continue
-            tuners.append(ISDBTuner(device_path))
+            # キャラクタデバイスファイルであればリストに追加
+            if device_path.exists() and device_path.is_char_device():
+                tuners.append(ISDBTuner(device_path))
 
         return tuners
 
@@ -422,9 +426,9 @@ class ISDBTuner:
         tuners: list[ISDBTuner] = []
         for device_path in ISDBS_TUNER_DEVICE_PATHS:
             device_path = Path(device_path)
-            if not device_path.exists():
-                continue
-            tuners.append(ISDBTuner(device_path))
+            # キャラクタデバイスファイルであればリストに追加
+            if device_path.exists() and device_path.is_char_device():
+                tuners.append(ISDBTuner(device_path))
 
         return tuners
 
@@ -442,9 +446,9 @@ class ISDBTuner:
         tuners: list[ISDBTuner] = []
         for device_path in ISDB_MULTI_TUNER_DEVICE_PATHS:
             device_path = Path(device_path)
-            if not device_path.exists():
-                continue
-            tuners.append(ISDBTuner(device_path))
+            # キャラクタデバイスファイルであればリストに追加
+            if device_path.exists() and device_path.is_char_device():
+                tuners.append(ISDBTuner(device_path))
 
         return tuners
 
