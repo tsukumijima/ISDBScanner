@@ -1,15 +1,17 @@
 
 from __future__ import annotations
 
+import libusb_package
 import re
 import signal
 import subprocess
 import sys
 import threading
 import time
+import usb.core
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Literal
+from typing import Any, cast, Literal
 
 from isdb_scanner.constants import (
     ISDBT_TUNER_DEVICE_PATHS,
@@ -39,7 +41,7 @@ class ISDBTuner:
         self.last_tuner_opening_failed = False
 
 
-    def __getPT1PT3PX4VideoDeviceTypeAndIndex(self) -> tuple[Literal['Terrestrial', 'Satellite'], int]:
+    def __getPT1PT3PX4VideoDeviceInfo(self) -> tuple[Literal['Terrestrial', 'Satellite'], int]:
         """
         /dev/pt1videoX・/dev/pt3videoX・/dev/px4videoX の X の部分を取得して、チューナーの種類と番号を返す
 
@@ -76,6 +78,49 @@ class ISDBTuner:
         return tuner_type, tuner_number
 
 
+    def __getPX4VideoTunerName(self) -> str:
+        """
+        接続されている USB デバイスの中から PX4/PX5 チューナーを探し、そのチューナー名を返す
+
+        Returns:
+            str: チューナー名 (複数接続されている場合は連結された文字列)
+        """
+
+        # PX4/PX5 チューナーの製造元の Digibest の Vendor ID
+        VENDOR_ID = 0x0511
+
+        # PX4/PX5 チューナーの Product ID とチューナー名の対応表
+        # ref: https://github.com/tsukumijima/px4_drv/blob/develop/driver/px4_usb.h
+        PRODUCT_ID_TO_TUNER_NAME = {
+            0x083f: 'PX-W3U4',
+            0x084a: 'PX-Q3U4',
+            0x023f: 'PX-W3PE4',
+            0x024a: 'PX-Q3PE4',
+            0x073f: 'PX-W3PE5',
+            0x074a: 'PX-Q3PE5',
+        }
+
+        # 接続されている USB デバイスの中から Digibest のデバイスを探す
+        backend = libusb_package.get_libusb1_backend()
+        devices = usb.core.find(find_all=True, idVendor=VENDOR_ID, backend=backend)
+        assert devices is not None, 'Failed to find USB devices.'
+
+        tuner_names: list[str] = []
+        for device in devices:
+            if hasattr(device, 'idProduct') is False:  # 念のため
+                continue
+            product_id = cast(Any, device).idProduct
+            if product_id in PRODUCT_ID_TO_TUNER_NAME:
+                tuner_names.append(PRODUCT_ID_TO_TUNER_NAME[product_id])
+
+        # 重複するチューナー名を削除
+        ## 同一機種を複数接続している場合は、チューナー名が重複する
+        tuner_names = list(set(tuner_names))
+
+        # チューナー名を連結して返す
+        return '/'.join(tuner_names)
+
+
     def __getTunerDeviceInfo(self) -> tuple[Literal['Terrestrial', 'Satellite', 'Multi'], str]:
         """
         チューナーデバイスの種類と名前を取得する
@@ -86,18 +131,18 @@ class ISDBTuner:
 
         # Earthsoft PT1/PT2
         if str(self.device_path).startswith('/dev/pt1video'):
-            tuner_type, tuner_number = self.__getPT1PT3PX4VideoDeviceTypeAndIndex()
+            tuner_type, tuner_number = self.__getPT1PT3PX4VideoDeviceInfo()
             return (tuner_type, f'Earthsoft PT1/PT2 ({tuner_type}) #{tuner_number}')
 
         # Earthsoft PT3
         if str(self.device_path).startswith('/dev/pt3video'):
-            tuner_type, tuner_number = self.__getPT1PT3PX4VideoDeviceTypeAndIndex()
+            tuner_type, tuner_number = self.__getPT1PT3PX4VideoDeviceInfo()
             return (tuner_type, f'Earthsoft PT3 ({tuner_type}) #{tuner_number}')
 
         # PLEX PX-W3U4/PX-Q3U4/PX-W3PE4/PX-Q3PE4/PX-W3PE5/PX-Q3PE5
         if str(self.device_path).startswith('/dev/px4video'):
-            tuner_type, tuner_number = self.__getPT1PT3PX4VideoDeviceTypeAndIndex()
-            return (tuner_type, f'PLEX PX4/PX5 Series ({tuner_type}) #{tuner_number}')
+            tuner_type, tuner_number = self.__getPT1PT3PX4VideoDeviceInfo()
+            return (tuner_type, f'PLEX {self.__getPX4VideoTunerName()} ({tuner_type}) #{tuner_number}')
 
         # PLEX PX-S1UR
         if str(self.device_path).startswith('/dev/pxs1urvideo'):
