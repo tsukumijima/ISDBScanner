@@ -221,7 +221,7 @@ def main(
         # チューナーを取得
         print(Rule(characters='-', style=Style(color='#E33157')))
         isdbs_tuners = ISDBTuner.getAvailableISDBSTuners()
-        if len(isdbt_tuners) == 0:
+        if len(isdbs_tuners) == 0:
             print('[red]No ISDB-S tuner found.[/red]')
             print('[red]Please connect an ISDB-S tuner and try again.[/red]')
             # チューナーがないため ISDB-S のスキャン処理は実行されない (for ループがスキップされる)

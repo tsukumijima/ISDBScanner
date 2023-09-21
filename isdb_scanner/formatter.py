@@ -348,7 +348,8 @@ class MirakurunChannelsYmlFormatter(BaseFormatter):
         # YAML に変換
         string_io = StringIO()
         yaml = YAML()
-        yaml.default_flow_style = False
+        yaml.preserve_quotes = True
+        yaml.indent(mapping=2, sequence=4, offset=2)
         yaml.dump(mirakurun_channels, string_io)
 
         # StringIO の先頭にシークする
@@ -451,7 +452,8 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
         # YAML に変換
         string_io = StringIO()
         yaml = YAML()
-        yaml.default_flow_style = False
+        yaml.preserve_quotes = True
+        yaml.indent(mapping=2, sequence=4, offset=2)
         yaml.dump(mirakurun_tuners, string_io)
 
         # StringIO の先頭にシークする
@@ -617,7 +619,8 @@ class MirakcConfigYmlFormatter(BaseFormatter):
         # YAML に変換
         string_io = StringIO()
         yaml = YAML()
-        yaml.default_flow_style = False
+        yaml.preserve_quotes = True
+        yaml.indent(mapping=2, sequence=4, offset=2)
         yaml.dump(mirakc_config, string_io)
 
         # StringIO の先頭にシークする
