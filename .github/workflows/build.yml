@@ -101,3 +101,30 @@ jobs:
         with:
           name: isdb-scanner-arm
           path: dist/isdb-scanner-arm
+
+  # build-linux と build-linux-arm のジョブが完了し、かつタグが push されたときのみ実行
+  release:
+    runs-on: ubuntu-20.04
+    needs: [build-linux, build-linux-arm]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+    steps:
+
+      - name: Download Artifact (x86_64)
+        uses: actions/download-artifact@v3
+        with:
+          name: isdb-scanner
+          path: dist
+
+      - name: Download Artifact (arm64)
+        uses: actions/download-artifact@v3
+        with:
+          name: isdb-scanner-arm
+          path: dist
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
+          files: |
+            ./dist/isdb-scanner
+            ./dist/isdb-scanner-arm
