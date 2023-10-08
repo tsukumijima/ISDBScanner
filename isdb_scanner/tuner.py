@@ -34,12 +34,13 @@ class ISDBTuner:
         """
 
         # 操作対象のデバイスファイルは最低でもキャラクタデバイスである必要がある
-        # チューナードライバが chardev 版か DVB 版かに関わらず、デバイスファイルはキャラクタデバイスになる
+        # チューナードライバが Chardev 版か DVB 版かに関わらず、デバイスファイルはキャラクタデバイスになる
         assert device_path.exists() and device_path.is_char_device(), f'Invalid tuner device: {device_path}'
-
-        self.device_path = device_path
         self.output_recisdb_log = output_recisdb_log
-        self.type, self.name = self.__getTunerDeviceInfo()
+
+        # 指定されたデバイスファイルに紐づくチューナーデバイスの情報を取得
+        self.device_path = device_path
+        self.device_type, self.type, self.name = self.__getTunerDeviceInfo()
 
         # 前回チューナーオープンが失敗した (TunerOpeningError が発生した) かどうか
         self.last_tuner_opening_failed = False
@@ -125,52 +126,52 @@ class ISDBTuner:
         return '/'.join(tuner_names)
 
 
-    def __getTunerDeviceInfo(self) -> tuple[Literal['Terrestrial', 'Satellite', 'Multi'], str]:
+    def __getTunerDeviceInfo(self) -> tuple[Literal['Chardev', 'DVB'], Literal['Terrestrial', 'Satellite', 'Multi'], str]:
         """
         チューナーデバイスの種類と名前を取得する
 
         Returns:
-            tuple[Literal['Terrestrial', 'Satellite', 'Multi'], str]: チューナーデバイスの種類と名前
+            tuple[Literal['Chardev', 'DVB'], Literal['Terrestrial', 'Satellite', 'Multi'], str]: チューナーデバイスの種類と名前
         """
 
         # Earthsoft PT1/PT2
         if str(self.device_path).startswith('/dev/pt1video'):
             tuner_type, tuner_number = self.__getPT1PT3PX4VideoDeviceInfo()
-            return (tuner_type, f'Earthsoft PT1/PT2 ({tuner_type}) #{tuner_number}')
+            return ('Chardev', tuner_type, f'Earthsoft PT1/PT2 ({tuner_type}) #{tuner_number}')
 
         # Earthsoft PT3
         if str(self.device_path).startswith('/dev/pt3video'):
             tuner_type, tuner_number = self.__getPT1PT3PX4VideoDeviceInfo()
-            return (tuner_type, f'Earthsoft PT3 ({tuner_type}) #{tuner_number}')
+            return ('Chardev', tuner_type, f'Earthsoft PT3 ({tuner_type}) #{tuner_number}')
 
         # PLEX PX-W3U4/PX-Q3U4/PX-W3PE4/PX-Q3PE4/PX-W3PE5/PX-Q3PE5
         if str(self.device_path).startswith('/dev/px4video'):
             tuner_type, tuner_number = self.__getPT1PT3PX4VideoDeviceInfo()
-            return (tuner_type, f'PLEX {self.__getPX4VideoTunerName()} ({tuner_type}) #{tuner_number}')
+            return ('Chardev', tuner_type, f'PLEX {self.__getPX4VideoTunerName()} ({tuner_type}) #{tuner_number}')
 
         # PLEX PX-S1UR
         if str(self.device_path).startswith('/dev/pxs1urvideo'):
-            return 'Terrestrial', f'PLEX PX-S1UR #{int(str(self.device_path).split("pxs1urvideo")[-1]) + 1}'
+            return ('Chardev', 'Terrestrial', f'PLEX PX-S1UR #{int(str(self.device_path).split("pxs1urvideo")[-1]) + 1}')
 
         # PLEX PX-M1UR
         if str(self.device_path).startswith('/dev/pxm1urvideo'):
-            return 'Multi', f'PLEX PX-M1UR #{int(str(self.device_path).split("pxm1urvideo")[-1]) + 1}'
+            return ('Chardev', 'Multi', f'PLEX PX-M1UR #{int(str(self.device_path).split("pxm1urvideo")[-1]) + 1}')
 
         # PLEX PX-MLT5PE
         if str(self.device_path).startswith('/dev/pxmlt5video'):
-            return 'Multi', f'PLEX PX-MLT5PE #{int(str(self.device_path).split("pxmlt5video")[-1]) + 1}'
+            return ('Chardev', 'Multi', f'PLEX PX-MLT5PE #{int(str(self.device_path).split("pxmlt5video")[-1]) + 1}')
 
         # PLEX PX-MLT8PE
         if str(self.device_path).startswith('/dev/pxmlt8video'):
-            return 'Multi', f'PLEX PX-MLT8PE #{int(str(self.device_path).split("pxmlt8video")[-1]) + 1}'
+            return ('Chardev', 'Multi', f'PLEX PX-MLT8PE #{int(str(self.device_path).split("pxmlt8video")[-1]) + 1}')
 
         # e-better DTV02A-4TS-P
         if str(self.device_path).startswith('/dev/isdb6014video'):
-            return 'Multi', f'e-better DTV02A-4TS-P #{int(str(self.device_path).split("isdb6014video")[-1]) + 1}'
+            return ('Chardev', 'Multi', f'e-better DTV02A-4TS-P #{int(str(self.device_path).split("isdb6014video")[-1]) + 1}')
 
         # e-better DTV02A-1T1S-U
         if str(self.device_path).startswith('/dev/isdb2056video'):
-            return 'Multi', f'e-better DTV02A-1T1S-U #{int(str(self.device_path).split("isdb2056video")[-1]) + 1}'
+            return ('Chardev', 'Multi', f'e-better DTV02A-1T1S-U #{int(str(self.device_path).split("isdb2056video")[-1]) + 1}')
 
         # ここには到達しないはず
         assert False, f'Unknown tuner device: {self.device_path}'
