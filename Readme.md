@@ -6,7 +6,8 @@
 **受信可能な日本のテレビチャンネル (ISDB-T/ISDB-S) を全自動でスキャンし、スキャン結果を [EDCB](https://github.com/xtne6f/EDCB) ([EDCB-Wine](https://github.com/tsukumijima/EDCB-Wine))・[Mirakurun](https://github.com/Chinachu/Mirakurun)・[mirakc](https://github.com/mirakc/mirakc) の各設定ファイルや JSON 形式で出力するツールです。**
 
 お使いの Linux PC に接続されているチューナーデバイスを自動的に検出し、全自動で受信可能なすべての地上波・BS・CS チャンネルをスキャンします。  
-**実行時に `--exclude-pay-tv` オプションを指定すれば、CS と BS の有料放送をスキャン結果から除外することも可能です。**
+**実行時に `--exclude-pay-tv` オプションを指定すれば、CS と BS の有料放送をスキャン結果から除外することも可能です。**  
+**さらに PC に接続されている対応チューナーを自動的に認識し、Mirakurun / mirakc のチューナー設定ファイルとして出力できます。**
 
 地上波では、13ch 〜 62ch までの物理チャンネルをすべてスキャンして、お住まいの地域で受信可能なチャンネルを検出します。  
 BS・CS では、**BS・CS1・CS2 ごとに1つの物理チャンネルのみをスキャンし TS 内のメタデータを解析することで、他のチャンネルスキャンツールよりも高速に現在放送中の衛星チャンネルを検出できます。**
@@ -182,9 +183,11 @@ ISDBScanner 自体は Python スクリプトですが、Python 3.11 がインス
 ```bash
 # x86_64 環境
 sudo wget https://github.com/tsukumijima/ISDBScanner/releases/download/v1.0.0/isdb-scanner -O /usr/local/bin/isdb-scanner
+sudo chmod +x /usr/local/bin/isdb-scanner
 
 # arm64 環境
 sudo wget https://github.com/tsukumijima/ISDBScanner/releases/download/v1.0.0/isdb-scanner-arm -O /usr/local/bin/isdb-scanner
+sudo chmod +x /usr/local/bin/isdb-scanner
 ```
 
 ## 使い方
@@ -201,11 +204,19 @@ ISDBScanner は、引数で指定されたディレクトリ (デフォルト: `
 ![Screenshot](https://github.com/tsukumijima/ISDBScanner/assets/39271166/b6deaefb-e386-44a7-9edc-4ffa64c3a824)
 
 **チャンネルスキャン中は、検出されたトランスポートストリーム / チャンネル (サービス) のリストとスキャンの進捗状況が、リアルタイムでグラフィカルに表示されます。**  
-もし地上波で特定のチャンネルが受信できていない場合は、受信状態や停波中でないかを確認してみてください。
+チャンネルスキャンに使おうとしたチューナーが現在使用中の際は、自動的に空いているチューナーを選択してスキャンを行います。  
+もし地上波で特定のチャンネルが受信できていない場合は、停波中でないかや受信状態などを確認してみてください。
+
+なお、スキャンには地デジ・BS・CS のフルスキャンを行う場合で 6 分程度、地デジ・BS の無料放送のみをスキャンする場合で 3 分程度かかります。  
+コマンドを実行して放置しておくのがおすすめです。
 
 > [!IMPORTANT]  
 > **地上波で複数の中継局の電波を受信できる地域にお住まいの場合、同一のチャンネルが重複して検出されることがあります。**  
-> この場合、ISDBScanner は同一のチャンネルを放送している各物理チャンネルごとに信号レベルを計測し、最も受信状態の良い物理チャンネルのみを出力します。動作確認はできていないけどおそらく動くはず…？  
+> この場合、ISDBScanner は同一のチャンネルを放送している各物理チャンネルごとに信号レベルを計測し、最も受信状態の良い物理チャンネルのみを選択します。動作確認はできていないけどおそらく動くはず…？  
+
+> [!NOTE]
+> 出力される Mirakurun / mirakc のチューナー設定ファイルには、現在 PC に接続中のチューナーのみが記載されます。  
+> 接続しているはずのチューナーが記載されない (ISDBScanner で認識されていない) 場合は、カーネルドライバのロード状態や、物理的なチューナーの接続状態を確認してみてください。
 
 ## 注意事項
 
