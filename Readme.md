@@ -1,7 +1,7 @@
 
 # ISDBScanner
 
-![Screenshot](https://github.com/tsukumijima/ISDBScanner/assets/39271166/e5f10b66-58de-486a-aa4c-e65945435602)
+![Screenshot](https://github.com/tsukumijima/ISDBScanner/assets/39271166/a60871ed-3fb8-4a6b-9b3e-41a3ccb63362)
 
 **受信可能な日本のテレビチャンネル (ISDB-T/ISDB-S) を全自動でスキャンし、スキャン結果を [EDCB](https://github.com/xtne6f/EDCB) ([EDCB-Wine](https://github.com/tsukumijima/EDCB-Wine))・[Mirakurun](https://github.com/Chinachu/Mirakurun)・[mirakc](https://github.com/mirakc/mirakc) の各設定ファイルや JSON 形式で出力するツールです。**
 
