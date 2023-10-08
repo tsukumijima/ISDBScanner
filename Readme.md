@@ -44,7 +44,7 @@ BS・CS では、**BS・CS1・CS2 ごとに1つの物理チャンネルのみを
 ## 対応チューナー
 
 現時点では、いわゆる chardev 版ドライバを使用するチューナーのみに対応しています。  
-recisdb が V4L2 DVB インターフェイスに対応していないため、現時点では V4L2 DVB 版ドライバを使用するチューナーには対応していません。  
+[recisdb](https://github.com/kazuki0824/recisdb-rs) が V4L2 DVB インターフェイスに対応していないため、現時点では V4L2 DVB 版ドライバを使用するチューナーには対応していません。  
 
 [px4_drv](https://github.com/tsukumijima/px4_drv) 対応チューナー以外での動作は検証していませんが、おそらく動作すると思います。
 
@@ -154,7 +154,7 @@ ISDBScanner は、チューナー受信コマンドとして [recisdb](https://g
 そのため、事前に recisdb のインストールが必要です。
 
 > [!NOTE]  
-> **recisdb は、旧来から chardev 版ドライバ用チューナー受信コマンドとして利用されてきた [recpt1](https://github.com/stz2012/recpt1) と、標準入出力経由で B25 デコードを行う [arib-b25-stream-test](https://www.npmjs.com/package/arib-b25-stream-test) / [b25 (libaribb25 同梱)](https://github.com/tsukumijima/libaribb25) のモダンな代替として開発された、次世代の Rust 製チューナー受信コマンドです。**  
+> **[recisdb](https://github.com/kazuki0824/recisdb-rs) は、旧来から chardev 版ドライバ用チューナー受信コマンドとして利用されてきた [recpt1](https://github.com/stz2012/recpt1) と、標準入出力経由で B25 デコードを行う [arib-b25-stream-test](https://www.npmjs.com/package/arib-b25-stream-test) / [b25 (libaribb25 同梱)](https://github.com/tsukumijima/libaribb25) のモダンな代替として開発された、次世代の Rust 製チューナー受信コマンドです。**  
 > 
 > チューナーからの放送波の受信と B25 デコード、さらに信号レベルの確認 (checksignal) をすべて recisdb ひとつで行えます。  
 > さらに recpt1 と異なり BS の物理チャンネルがハードコードされていないため、**将来 BS 帯域再編 (トランスポンダ/スロット移動) が行われた際も、recisdb を更新することなく ISDBScanner でのチャンネルスキャンと各設定ファイルの更新だけで対応できます。**
