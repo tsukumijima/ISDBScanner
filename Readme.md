@@ -147,7 +147,43 @@ ISDBScanner は、引数で指定されたディレクトリに複数のファ�
 
 ## インストール
 
-執筆中…
+ISDBScanner は、チューナー受信コマンドとして [recisdb](https://github.com/kazuki0824/recisdb-rs) を利用しています。  
+そのため、事前に recisdb のインストールが必要です。
+
+> [!NOTE]  
+> **recisdb は、旧来から chardev 版ドライバ用チューナー受信コマンドとして利用されてきた [recpt1](https://github.com/stz2012/recpt1) と、標準入出力経由で B25 デコードを行う [arib-b25-stream-test](https://www.npmjs.com/package/arib-b25-stream-test) / [b25 (libaribb25 同梱)](https://github.com/tsukumijima/libaribb25) のモダンな代替として開発された、次世代の Rust 製チューナー受信コマンドです。**  
+> 
+> チューナーからの放送波の受信と B25 デコード、さらに信号レベルの確認 (checksignal) をすべて recisdb ひとつで行えます。  
+> さらに recpt1 と異なり BS の物理チャンネルがハードコードされていないため、**今後 BS 帯域再編 (トランスポンダ変更) があった際も、再度 ISDBScanner でチャンネルスキャンを行うだけで対応できます。**
+
+以下の手順で、recisdb をインストールしてください。  
+
+```bash
+# Deb パッケージは Ubuntu 20.04 LTS / Debian 11 以降に対応
+
+# x86_64 環境
+wget https://github.com/kazuki0824/recisdb-rs/releases/download/1.1.0/recisdb_1.1.0_amd64.deb
+sudo apt install ./recisdb_1.1.0_amd64.deb
+rm ./recisdb_1.1.0_amd64.deb
+
+# arm64 環境
+wget https://github.com/kazuki0824/recisdb-rs/releases/download/1.1.0/recisdb_1.1.0_arm64.deb
+sudo apt install ./recisdb_1.1.0_arm64.deb
+rm ./recisdb_1.1.0_arm64.deb
+```
+> [!NOTE]  
+> アンインストールは `sudo apt remove recisdb` で行えます。
+
+ISDBScanner 自体は Python スクリプトですが、Python 3.11 がインストールされていない環境でも動かせるよう、PyInstaller でシングルバイナリ化した実行ファイルを公開しています。  
+以下の手順で、ISDBScanner をインストールしてください。
+
+```bash
+# x86_64 環境
+sudo wget https://github.com/tsukumijima/ISDBScanner/releases/download/v1.0.0/isdb-scanner -O /usr/local/bin/isdb-scanner
+
+# arm64 環境
+sudo wget https://github.com/tsukumijima/ISDBScanner/releases/download/v1.0.0/isdb-scanner-arm -O /usr/local/bin/isdb-scanner
+```
 
 ## 使い方
 
