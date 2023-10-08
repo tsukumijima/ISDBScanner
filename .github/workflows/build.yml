@@ -104,9 +104,13 @@ jobs:
 
   # build-linux と build-linux-arm のジョブが完了し、かつタグが push されたときのみ実行
   release:
-    runs-on: ubuntu-20.04
-    needs: [build-linux, build-linux-arm]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+    runs-on: ubuntu-20.04
+    needs:
+      - build-linux
+      - build-linux-arm
+    permissions:
+      contents: write
     steps:
 
       - name: Download Artifact (x86_64)

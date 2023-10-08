@@ -68,7 +68,7 @@ recisdb が V4L2 DVB インターフェイスに対応していないため、�
 
 ## 対応出力フォーマット
 
-ISDBScanner は、引数で指定されたディレクトリに複数のファイルを出力します。  
+ISDBScanner は、引数で指定されたディレクトリ以下に複数のファイルを出力します。  
 出力されるファイルのフォーマットは以下の通りです。
 
 > [!NOTE]  
@@ -189,8 +189,23 @@ sudo wget https://github.com/tsukumijima/ISDBScanner/releases/download/v1.0.0/is
 
 ## 使い方
 
-執筆中…
+![Screenshot](https://github.com/tsukumijima/ISDBScanner/assets/39271166/bda43f93-e081-413e-ab0f-455b8a915b79)
 
+ISDBScanner は、引数で指定されたディレクトリ (デフォルト: `./scanned/`) 以下に複数のファイルを出力します。  
+出力される各ファイルのフォーマットは [対応出力フォーマット](#対応出力フォーマット) を参照してください。
+
+地上波・BS・CS すべてのチャンネルをスキャンする際は、`isdb-scanner` と実行してください (出力先ディレクトリを指定しない場合は `./scanned/` に出力されます)。  
+地上波と BS の無料放送のみをスキャン結果に含めたい場合は、`isdb-scanner --exclude-pay-tv` と実行してください。
+
+![Screenshot](https://github.com/tsukumijima/ISDBScanner/assets/39271166/23a99ce8-df1b-4f15-858b-da011c8f385a)
+![Screenshot](https://github.com/tsukumijima/ISDBScanner/assets/39271166/b6deaefb-e386-44a7-9edc-4ffa64c3a824)
+
+**チャンネルスキャン中は、検出されたトランスポートストリーム / チャンネル (サービス) のリストとスキャンの進捗状況が、リアルタイムでグラフィカルに表示されます。**  
+もし地上波で特定のチャンネルが受信できていない場合は、受信状態や停波中でないかを確認してみてください。
+
+> [!IMPORTANT]  
+> **地上波で複数の中継局の電波を受信できる地域にお住まいの場合、同一のチャンネルが重複して検出されることがあります。**  
+> この場合、ISDBScanner は同一のチャンネルを放送している各物理チャンネルごとに信号レベルを計測し、最も受信状態の良い物理チャンネルのみを出力します。動作確認はできていないけどおそらく動くはず…？  
 
 ## 注意事項
 
