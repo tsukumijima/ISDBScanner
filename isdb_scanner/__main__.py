@@ -36,6 +36,7 @@ def main(
     output: Path = typer.Argument(Path('scanned/'), help='Output scan results to the specified directory.'),
     exclude_pay_tv: bool = typer.Option(False, help='Exclude pay-TV channels from scan results and include only free-to-air terrestrial and BS channels.'),
     output_recisdb_log: bool = typer.Option(False, help='Output recisdb log to stderr.'),
+    list_tuners: bool = typer.Option(False, help='List available ISDB-T/S tuners and exit.'),
 ):
 
     print(Rule(
@@ -56,6 +57,22 @@ def main(
     if sys.platform != 'linux':
         print('[red]ISDBScanner only supports Linux.[/red]')
         print('[red]Please run this tool on Linux.[/red]')
+        print(Rule(characters='=', style=Style(color='#E33157')))
+        return
+
+    # --list-tuners が指定されている場合、利用可能な ISDB-T/S チューナーを表示して終了
+    if list_tuners is True:
+        print('[bright_blue]Available ISDB-T tuners:[/bright_blue]')
+        for tuner in ISDBTuner.getAvailableISDBTOnlyTuners():
+            print(f'  [{tuner.device_type}][{tuner.type}]: [green]{tuner.name}[/green] ({tuner.device_path})')
+        print(Rule(characters='=', style=Style(color='#E33157')))
+        print('[bright_blue]Available ISDB-S tuners:[/bright_blue]')
+        for tuner in ISDBTuner.getAvailableISDBSOnlyTuners():
+            print(f'  [{tuner.device_type}][{tuner.type}]: [green]{tuner.name}[/green] ({tuner.device_path})')
+        print(Rule(characters='=', style=Style(color='#E33157')))
+        print('[bright_blue]Available ISDB-T/S multi tuners:[/bright_blue]')
+        for tuner in ISDBTuner.getAvailableMultiTuners():
+            print(f'  [{tuner.device_type}][{tuner.type}]: [green]{tuner.name}[/green] ({tuner.device_path})')
         print(Rule(characters='=', style=Style(color='#E33157')))
         return
 
