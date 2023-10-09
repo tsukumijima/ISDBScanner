@@ -44,7 +44,7 @@ BS・CS では、**BS・CS1・CS2 ごとに1つの物理チャンネルのみを
 ## 対応チューナー
 
 現時点では、いわゆる chardev 版ドライバを使用するチューナーのみに対応しています。  
-[recisdb](https://github.com/kazuki0824/recisdb-rs) が V4L2 DVB インターフェイスに対応していないため、現時点では V4L2 DVB 版ドライバを使用するチューナーには対応していません。  
+[recisdb](https://github.com/kazuki0824/recisdb-rs) が V4L-DVB インターフェイスに対応していないため、現時点では V4L-DVB 版ドライバを使用するチューナーには対応していません。  
 
 [px4_drv](https://github.com/tsukumijima/px4_drv) 対応チューナー以外での動作は検証していませんが、おそらく動作すると思います。
 

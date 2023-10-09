@@ -23,7 +23,7 @@ from isdb_scanner.constants import (
 
 
 class ISDBTuner:
-    """ ISDB-T/S チューナーデバイスを操作するクラス (recisdb のラッパー) """
+    """ ISDB-T/ISDB-S チューナーデバイスを操作するクラス (recisdb のラッパー) """
 
 
     def __init__(self, device_path: Path, output_recisdb_log: bool = False) -> None:
@@ -42,22 +42,25 @@ class ISDBTuner:
 
         # 指定されたデバイスファイルに紐づくチューナーデバイスの情報を取得
         self.device_path = device_path
+        self.device_type: Literal['Chardev', 'V4L-DVB']
+        self.type: Literal['ISDB-T', 'ISDB-S', 'ISDB-T/ISDB-S']
+        self.name: str
         self.device_type, self.type, self.name = self.__getTunerDeviceInfo()
 
         # 前回チューナーオープンが失敗した (TunerOpeningError が発生した) かどうか
         self.last_tuner_opening_failed = False
 
 
-    def __getTunerDeviceInfo(self) -> tuple[Literal['Chardev', 'DVB'], Literal['Terrestrial', 'Satellite', 'Multi'], str]:
+    def __getTunerDeviceInfo(self) -> tuple[Literal['Chardev', 'V4L-DVB'], Literal['ISDB-T', 'ISDB-S', 'ISDB-T/ISDB-S'], str]:
         """
         チューナーデバイスの種類と名前を取得する
 
         Returns:
-            tuple[Literal['Chardev', 'DVB'], Literal['Terrestrial', 'Satellite', 'Multi'], str]: チューナーデバイスの種類と名前
+            tuple[Literal['Chardev', 'V4L-DVB'], Literal['ISDB-T', 'ISDB-S', 'ISDB-T/ISDB-S'], str]: チューナーデバイスの種類と名前
         """
 
         # /dev/pt1videoX・/dev/pt3videoX・/dev/px4videoX の X の部分を取得して、チューナーの種類と番号を返す共通処理
-        def GetPT1PT3PX4VideoDeviceInfo() -> tuple[Literal['Terrestrial', 'Satellite'], int]:
+        def GetPT1PT3PX4VideoDeviceInfo() -> tuple[Literal['ISDB-T', 'ISDB-S'], int]:
 
             # デバイスパスから数字部分を抽出
             if str(self.device_path).startswith('/dev/pt1video'):
@@ -74,10 +77,10 @@ class ISDBTuner:
             # ISDB-S: 0,1,4,5,8,9,12,13 ... (2個おき)
             remainder = device_number % 4
             if remainder in [0, 1]:
-                tuner_type = 'Satellite'
+                tuner_type = 'ISDB-S'
                 tuner_number = device_number // 4 * 2 + 1
             elif remainder in [2, 3]:
-                tuner_type = 'Terrestrial'
+                tuner_type = 'ISDB-T'
                 tuner_number = (device_number - 2) // 4 * 2 + 1
             else:
                 assert False, f'Unknown tuner device: {self.device_path}'
@@ -86,12 +89,12 @@ class ISDBTuner:
 
             return tuner_type, tuner_number
 
-        # V4L2 DVB 版ドライバのチューナーデバイス
+        # V4L-DVB 版ドライバのチューナーデバイス
         if str(self.device_path).startswith('/dev/dvb'):
             # システムで利用可能な DVB デバイスの中から、デバイスパスが一致するデバイス情報を探す
             for device_info in ISDBTuner.getAvailableDVBDeviceInfos():
                 if device_info.device_path == self.device_path:
-                    return ('DVB', device_info.tuner_type, device_info.tuner_name)
+                    return ('V4L-DVB', device_info.tuner_type, device_info.tuner_name)
 
         # ***** ここからは chardev 版ドライバのチューナーデバイス *****
 
@@ -143,27 +146,27 @@ class ISDBTuner:
 
         # PLEX PX-S1UR
         if str(self.device_path).startswith('/dev/pxs1urvideo'):
-            return ('Chardev', 'Terrestrial', f'PLEX PX-S1UR #{int(str(self.device_path).split("pxs1urvideo")[-1]) + 1}')
+            return ('Chardev', 'ISDB-T', f'PLEX PX-S1UR #{int(str(self.device_path).split("pxs1urvideo")[-1]) + 1}')
 
         # PLEX PX-M1UR
         if str(self.device_path).startswith('/dev/pxm1urvideo'):
-            return ('Chardev', 'Multi', f'PLEX PX-M1UR #{int(str(self.device_path).split("pxm1urvideo")[-1]) + 1}')
+            return ('Chardev', 'ISDB-T/ISDB-S', f'PLEX PX-M1UR #{int(str(self.device_path).split("pxm1urvideo")[-1]) + 1}')
 
         # PLEX PX-MLT5PE
         if str(self.device_path).startswith('/dev/pxmlt5video'):
-            return ('Chardev', 'Multi', f'PLEX PX-MLT5PE #{int(str(self.device_path).split("pxmlt5video")[-1]) + 1}')
+            return ('Chardev', 'ISDB-T/ISDB-S', f'PLEX PX-MLT5PE #{int(str(self.device_path).split("pxmlt5video")[-1]) + 1}')
 
         # PLEX PX-MLT8PE
         if str(self.device_path).startswith('/dev/pxmlt8video'):
-            return ('Chardev', 'Multi', f'PLEX PX-MLT8PE #{int(str(self.device_path).split("pxmlt8video")[-1]) + 1}')
+            return ('Chardev', 'ISDB-T/ISDB-S', f'PLEX PX-MLT8PE #{int(str(self.device_path).split("pxmlt8video")[-1]) + 1}')
 
         # e-better DTV02A-4TS-P
         if str(self.device_path).startswith('/dev/isdb6014video'):
-            return ('Chardev', 'Multi', f'e-better DTV02A-4TS-P #{int(str(self.device_path).split("isdb6014video")[-1]) + 1}')
+            return ('Chardev', 'ISDB-T/ISDB-S', f'e-better DTV02A-4TS-P #{int(str(self.device_path).split("isdb6014video")[-1]) + 1}')
 
         # e-better DTV02A-1T1S-U
         if str(self.device_path).startswith('/dev/isdb2056video'):
-            return ('Chardev', 'Multi', f'e-better DTV02A-1T1S-U #{int(str(self.device_path).split("isdb2056video")[-1]) + 1}')
+            return ('Chardev', 'ISDB-T/ISDB-S', f'e-better DTV02A-1T1S-U #{int(str(self.device_path).split("isdb2056video")[-1]) + 1}')
 
         # ここには到達しないはず
         assert False, f'Unknown tuner device: {self.device_path}'
@@ -371,7 +374,7 @@ class ISDBTuner:
         for device_path in DVB_INTERFACE_TUNER_DEVICE_PATHS:
 
             # /dev/dvb/adapter0/frontend0 のようなパスから、DVB デバイス番号 (adapterX) を取得
-            search = re.search(r'adapter(\d+)', str(device_path))
+            search = re.search(r'\/dev\/dvb\/adapter(\d+)\/frontend0', device_path)
             if search is None:
                 continue
             adapter_number = int(search.group(1))
@@ -392,7 +395,7 @@ class ISDBTuner:
                 if vendor_id == 0x187f and product_id == 0x0600:
                     device_infos.append(DVBDeviceInfo(
                         device_path = Path(device_path),
-                        tuner_type = 'Terrestrial',
+                        tuner_type = 'ISDB-T',
                         tuner_name = 'MyGica S270',
                     ))
 
@@ -402,7 +405,7 @@ class ISDBTuner:
                 if vendor_id == 0x3275 and product_id == 0x0080:
                     device_infos.append(DVBDeviceInfo(
                         device_path = Path(device_path),
-                        tuner_type = 'Terrestrial',
+                        tuner_type = 'ISDB-T',
                         tuner_name = 'PLEX PX-S1UD / VASTDTV VT20',
                     ))
 
@@ -430,7 +433,7 @@ class ISDBTuner:
                 if vendor_id == 0x10ee and device_id == 0x211a:
                     device_infos.append(DVBDeviceInfo(
                         device_path = Path(device_path),
-                        tuner_type = 'Terrestrial',  # TODO!!!!
+                        tuner_type = 'ISDB-T',  # TODO!!!!
                         tuner_name = 'Earthsoft PT1',
                     ))
 
@@ -438,7 +441,7 @@ class ISDBTuner:
                 if vendor_id == 0x10ee and device_id == 0x222a:
                     device_infos.append(DVBDeviceInfo(
                         device_path = Path(device_path),
-                        tuner_type = 'Terrestrial',  # TODO!!!!
+                        tuner_type = 'ISDB-T',  # TODO!!!!
                         tuner_name = 'Earthsoft PT2',
                     ))
 
@@ -446,7 +449,7 @@ class ISDBTuner:
                 if vendor_id == 0x1172 and device_id == 0x4c15 and subsystem_vendor_id == 0xee8d and subsystem_device_id == 0x0368:
                     device_infos.append(DVBDeviceInfo(
                         device_path = Path(device_path),
-                        tuner_type = 'Terrestrial',  # TODO!!!!
+                        tuner_type = 'ISDB-T',  # TODO!!!!
                         tuner_name = 'Earthsoft PT3',
                     ))
 
@@ -454,38 +457,38 @@ class ISDBTuner:
                 if vendor_id == 0xdd01:
 
                     # DD Max M4
-                    ## ISDB-T/S 以外の放送方式も受信できるが、ISDBScanner では ISDB-T/S 以外をサポートしないため、ISDB-T/S 共用チューナーとして扱う
+                    ## ISDB-T/ISDB-S 以外の DVB などの放送方式も受信できるが、ISDBScanner では ISDB-T/ISDB-S 以外をサポートしないため、ISDB-T/ISDB-S 共用チューナーとして扱う
                     if device_id == 0x000a and subsystem_device_id == 0x0050:
                         device_infos.append(DVBDeviceInfo(
                             device_path = Path(device_path),
-                            tuner_type = 'Multi',
+                            tuner_type = 'ISDB-T/ISDB-S',
                             tuner_name = 'Digital Devices DD Max M4',
                         ))
 
                     # DD Max M8 (未発売)
-                    ## ISDB-T/S 以外の放送方式も受信できるが、ISDBScanner では ISDB-T/S 以外をサポートしないため、ISDB-T/S 共用チューナーとして扱う
+                    ## ISDB-T/ISDB-S 以外の DVB などの放送方式も受信できるが、ISDBScanner では ISDB-T/ISDB-S 以外をサポートしないため、ISDB-T/ISDB-S 共用チューナーとして扱う
                     if device_id == 0x0022 and subsystem_device_id == 0x0052:
                         device_infos.append(DVBDeviceInfo(
                             device_path = Path(device_path),
-                            tuner_type = 'Multi',
+                            tuner_type = 'ISDB-T/ISDB-S',
                             tuner_name = 'Digital Devices DD Max M8',
                         ))
 
                     # DD Max M8A (未発売)
-                    ## ISDB-T/S 以外の放送方式も受信できるが、ISDBScanner では ISDB-T/S 以外をサポートしないため、ISDB-T/S 共用チューナーとして扱う
+                    ## ISDB-T/ISDB-S 以外の DVB などの放送方式も受信できるが、ISDBScanner では ISDB-T/ISDB-S 以外をサポートしないため、ISDB-T/ISDB-S 共用チューナーとして扱う
                     if device_id == 0x0024 and subsystem_device_id == 0x0053:
                         device_infos.append(DVBDeviceInfo(
                             device_path = Path(device_path),
-                            tuner_type = 'Multi',
+                            tuner_type = 'ISDB-T/ISDB-S',
                             tuner_name = 'Digital Devices DD Max M8A',
                         ))
 
                     # DD Max A8i (終売)
-                    ## ISDB-T 以外の放送方式も受信できるが、ISDBScanner では ISDB-T/S 以外をサポートしないため、ISDB-T 専用チューナーとして扱う
+                    ## ISDB-T 以外の DVB などの放送方式も受信できるが、ISDBScanner では ISDB-T/ISDB-S 以外をサポートしないため、ISDB-T 専用チューナーとして扱う
                     if device_id == 0x0008 and subsystem_device_id == 0x0036:
                         device_infos.append(DVBDeviceInfo(
                             device_path = Path(device_path),
-                            tuner_type = 'Terrestrial',
+                            tuner_type = 'ISDB-T',
                             tuner_name = 'Digital Devices DD Max A8i',
                         ))
 
@@ -511,13 +514,13 @@ class ISDBTuner:
     def getAvailableISDBTTuners() -> list[ISDBTuner]:
         """
         利用可能な ISDB-T チューナーのリストを取得する
-        ISDB-T 専用チューナーと ISDB-T/S 共用チューナーの両方が含まれる
+        ISDB-T 専用チューナーと ISDB-T/ISDB-S 共用チューナーの両方が含まれる
 
         Returns:
             list[ISDBTuner]: 利用可能な ISDB-T チューナーのリスト
         """
 
-        # ISDB-T 専用チューナーと ISDB-T/S 共用チューナーの両方を含む
+        # ISDB-T 専用チューナーと ISDB-T/ISDB-S 共用チューナーの両方を含む
         return ISDBTuner.getAvailableISDBTOnlyTuners() + ISDBTuner.getAvailableMultiTuners()
 
 
@@ -532,14 +535,14 @@ class ISDBTuner:
         """
 
         # 存在するデバイスのパスを取得し、ISDBTuner を初期化してリストに追加
-        # chardev デバイスを優先し、V4L2 DVB デバイスは後から追加する
+        # chardev デバイスを優先し、V4L-DVB デバイスは後から追加する
         tuners: list[ISDBTuner] = []
         for device_path in ISDBT_TUNER_DEVICE_PATHS + DVB_INTERFACE_TUNER_DEVICE_PATHS:
             device_path = Path(device_path)
             # キャラクタデバイスファイルかつ ISDB-T 専用チューナーであればリストに追加
             if device_path.exists() and device_path.is_char_device():
                 tuner = ISDBTuner(device_path)
-                if tuner.type == 'Terrestrial':
+                if tuner.type == 'ISDB-T':
                     tuners.append(tuner)
 
         return tuners
@@ -549,13 +552,13 @@ class ISDBTuner:
     def getAvailableISDBSTuners() -> list[ISDBTuner]:
         """
         利用可能な ISDB-S チューナーのリストを取得する
-        ISDB-S 専用チューナーと ISDB-T/S 共用チューナーの両方が含まれる
+        ISDB-S 専用チューナーと ISDB-T/ISDB-S 共用チューナーの両方が含まれる
 
         Returns:
             list[ISDBTuner]: 利用可能な ISDB-S チューナーのリスト
         """
 
-        # ISDB-S 専用チューナーと ISDB-T/S 共用チューナーの両方を含む
+        # ISDB-S 専用チューナーと ISDB-T/ISDB-S 共用チューナーの両方を含む
         return ISDBTuner.getAvailableISDBSOnlyTuners() + ISDBTuner.getAvailableMultiTuners()
 
 
@@ -570,14 +573,14 @@ class ISDBTuner:
         """
 
         # 存在するデバイスのパスを取得し、ISDBTuner を初期化してリストに追加
-        # chardev デバイスを優先し、V4L2 DVB デバイスは後から追加する
+        # chardev デバイスを優先し、V4L-DVB デバイスは後から追加する
         tuners: list[ISDBTuner] = []
         for device_path in ISDBS_TUNER_DEVICE_PATHS + DVB_INTERFACE_TUNER_DEVICE_PATHS:
             device_path = Path(device_path)
             # キャラクタデバイスファイルかつ ISDB-S 専用チューナーであればリストに追加
             if device_path.exists() and device_path.is_char_device():
                 tuner = ISDBTuner(device_path)
-                if tuner.type == 'Satellite':
+                if tuner.type == 'ISDB-S':
                     tuners.append(tuner)
 
         return tuners
@@ -586,21 +589,21 @@ class ISDBTuner:
     @staticmethod
     def getAvailableMultiTuners() -> list[ISDBTuner]:
         """
-        利用可能な ISDB-T/S 共用チューナーのリストを取得する
+        利用可能な ISDB-T/ISDB-S 共用チューナーのリストを取得する
 
         Returns:
-            list[ISDBTuner]: 利用可能な ISDB-T/S 共用チューナーのリスト
+            list[ISDBTuner]: 利用可能な ISDB-T/ISDB-S 共用チューナーのリスト
         """
 
         # 存在するデバイスのパスを取得し、ISDBTuner を初期化してリストに追加
-        # chardev デバイスを優先し、V4L2 DVB デバイスは後から追加する
+        # chardev デバイスを優先し、V4L-DVB デバイスは後から追加する
         tuners: list[ISDBTuner] = []
         for device_path in ISDB_MULTI_TUNER_DEVICE_PATHS + DVB_INTERFACE_TUNER_DEVICE_PATHS:
             device_path = Path(device_path)
-            # キャラクタデバイスファイルかつ ISDB-T/S 共用チューナーであればリストに追加
+            # キャラクタデバイスファイルかつ ISDB-T/ISDB-S 共用チューナーであればリストに追加
             if device_path.exists() and device_path.is_char_device():
                 tuner = ISDBTuner(device_path)
-                if tuner.type == 'Multi':
+                if tuner.type == 'ISDB-T/ISDB-S':
                     tuners.append(tuner)
 
         return tuners

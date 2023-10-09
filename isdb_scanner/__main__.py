@@ -36,7 +36,7 @@ def main(
     output: Path = typer.Argument(Path('scanned/'), help='Output scan results to the specified directory.'),
     exclude_pay_tv: bool = typer.Option(False, help='Exclude pay-TV channels from scan results and include only free-to-air terrestrial and BS channels.'),
     output_recisdb_log: bool = typer.Option(False, help='Output recisdb log to stderr.'),
-    list_tuners: bool = typer.Option(False, help='List available ISDB-T/S tuners and exit.'),
+    list_tuners: bool = typer.Option(False, help='List available ISDB-T/ISDB-S tuners and exit.'),
 ):
 
     print(Rule(
@@ -60,19 +60,19 @@ def main(
         print(Rule(characters='=', style=Style(color='#E33157')))
         return
 
-    # --list-tuners が指定されている場合、利用可能な ISDB-T/S チューナーを表示して終了
+    # --list-tuners が指定されている場合、利用可能な ISDB-T/ISDB-S チューナーを表示して終了
     if list_tuners is True:
         print('[bright_blue]Available ISDB-T tuners:[/bright_blue]')
         for tuner in ISDBTuner.getAvailableISDBTOnlyTuners():
-            print(f'  [{tuner.device_type}][{tuner.type}]: [green]{tuner.name}[/green] ({tuner.device_path})')
+            print(f'  [{tuner.device_type}] [green]{tuner.name}[/green] ({tuner.device_path})')
         print(Rule(characters='=', style=Style(color='#E33157')))
         print('[bright_blue]Available ISDB-S tuners:[/bright_blue]')
         for tuner in ISDBTuner.getAvailableISDBSOnlyTuners():
-            print(f'  [{tuner.device_type}][{tuner.type}]: [green]{tuner.name}[/green] ({tuner.device_path})')
+            print(f'  [{tuner.device_type}] [green]{tuner.name}[/green] ({tuner.device_path})')
         print(Rule(characters='=', style=Style(color='#E33157')))
-        print('[bright_blue]Available ISDB-T/S multi tuners:[/bright_blue]')
+        print('[bright_blue]Available ISDB-T/ISDB-S multi tuners:[/bright_blue]')
         for tuner in ISDBTuner.getAvailableMultiTuners():
-            print(f'  [{tuner.device_type}][{tuner.type}]: [green]{tuner.name}[/green] ({tuner.device_path})')
+            print(f'  [{tuner.device_type}] [green]{tuner.name}[/green] ({tuner.device_path})')
         print(Rule(characters='=', style=Style(color='#E33157')))
         return
 
@@ -311,7 +311,7 @@ def main(
     (output / 'Mirakurun').mkdir(parents=True, exist_ok=True)
     (output / 'mirakc').mkdir(parents=True, exist_ok=True)
 
-    # ISDB-T 専用チューナー・ISDB-S 専用チューナー・ISDB-T/S 共用チューナーを取得
+    # ISDB-T 専用チューナー・ISDB-S 専用チューナー・ISDB-T/ISDB-S 共用チューナーを取得
     available_isdbt_tuners = ISDBTuner.getAvailableISDBTOnlyTuners()
     available_isdbs_tuners = ISDBTuner.getAvailableISDBSOnlyTuners()
     available_multi_tuners = ISDBTuner.getAvailableMultiTuners()

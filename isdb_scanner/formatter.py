@@ -385,7 +385,7 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
             save_file_path (Path): 保存先のファイルパス
             isdbt_tuners (list[ISDBTuner]): ISDB-T 専用チューナーのリスト
             isdbs_tuners (list[ISDBTuner]): ISDB-S 専用チューナーのリスト
-            multi_tuners (list[ISDBTuner]): ISDB-T/S 共用チューナーのリスト
+            multi_tuners (list[ISDBTuner]): ISDB-T/ISDB-S 共用チューナーのリスト
             recpt1_compatible (bool): recpt1 と互換性のある物理チャンネル指定フォーマットで保存するか
         """
 
@@ -414,7 +414,7 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
         mirakurun_tuners: list[MirakurunTuner] = []
         for isdbt_tuner in self._isdbt_tuners:
             # recpt1 は DVB チューナーに非対応なのでスキップ
-            if self._recpt1_compatible is True and isdbt_tuner.device_type == 'DVB':
+            if self._recpt1_compatible is True and isdbt_tuner.device_type == 'V4L-DVB':
                 continue
             tuner: MirakurunTuner = {
                 'name': isdbt_tuner.name,
@@ -429,7 +429,7 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
             mirakurun_tuners.append(tuner)
         for isdbs_tuner in self._isdbs_tuners:
             # recpt1 は DVB チューナーに非対応なのでスキップ
-            if self._recpt1_compatible is True and isdbs_tuner.device_type == 'DVB':
+            if self._recpt1_compatible is True and isdbs_tuner.device_type == 'V4L-DVB':
                 continue
             tuner: MirakurunTuner = {
                 'name': isdbs_tuner.name,
@@ -444,7 +444,7 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
             mirakurun_tuners.append(tuner)
         for multi_tuner in self._multi_tuners:
             # recpt1 は DVB チューナーに非対応なのでスキップ
-            if self._recpt1_compatible is True and multi_tuner.device_type == 'DVB':
+            if self._recpt1_compatible is True and multi_tuner.device_type == 'V4L-DVB':
                 continue
             tuner: MirakurunTuner = {
                 'name': multi_tuner.name,
@@ -519,7 +519,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
             save_file_path (Path): 保存先のファイルパス
             isdbt_tuners (list[ISDBTuner]): ISDB-T 専用チューナーのリスト
             isdbs_tuners (list[ISDBTuner]): ISDB-S 専用チューナーのリスト
-            multi_tuners (list[ISDBTuner]): ISDB-T/S 共用チューナーのリスト
+            multi_tuners (list[ISDBTuner]): ISDB-T/ISDB-S 共用チューナーのリスト
             terrestrial_ts_infos (list[TransportStreamInfo]): スキャン結果の地上波の TS 情報
             bs_ts_infos (list[TransportStreamInfo]): スキャン結果の BS の TS 情報
             cs_ts_infos (list[TransportStreamInfo]): スキャン結果の CS の TS 情報
@@ -602,7 +602,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
         # mirakc のチューナー設定ファイル用のデータ構造に変換
         for isdbt_tuner in self._isdbt_tuners:
             # recpt1 は DVB チューナーに非対応なのでスキップ
-            if self._recpt1_compatible is True and isdbt_tuner.device_type == 'DVB':
+            if self._recpt1_compatible is True and isdbt_tuner.device_type == 'V4L-DVB':
                 continue
             tuner: MirakcTuner = {
                 'name': isdbt_tuner.name,
@@ -613,7 +613,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
             cast(list[MirakcTuner], mirakc_config['tuners']).append(tuner)
         for isdbs_tuner in self._isdbs_tuners:
             # recpt1 は DVB チューナーに非対応なのでスキップ
-            if self._recpt1_compatible is True and isdbs_tuner.device_type == 'DVB':
+            if self._recpt1_compatible is True and isdbs_tuner.device_type == 'V4L-DVB':
                 continue
             tuner: MirakcTuner = {
                 'name': isdbs_tuner.name,
@@ -624,7 +624,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
             cast(list[MirakcTuner], mirakc_config['tuners']).append(tuner)
         for multi_tuner in self._multi_tuners:
             # recpt1 は DVB チューナーに非対応なのでスキップ
-            if self._recpt1_compatible is True and multi_tuner.device_type == 'DVB':
+            if self._recpt1_compatible is True and multi_tuner.device_type == 'V4L-DVB':
                 continue
             tuner: MirakcTuner = {
                 'name': multi_tuner.name,

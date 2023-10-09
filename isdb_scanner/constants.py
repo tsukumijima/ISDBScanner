@@ -114,13 +114,13 @@ class TransportStreamInfoList(RootModel[list[TransportStreamInfo]]):
 
 class DVBDeviceInfo(BaseModel):
     device_path: Path
-    tuner_type: Literal['Terrestrial', 'Satellite', 'Multi']
+    tuner_type: Literal['ISDB-T', 'ISDB-S', 'ISDB-T/ISDB-S']
     tuner_name: str
 
 
-# V4L2 DVB 版ドライバにおけるチューナーデバイスのパス
+# V4L-DVB 版ドライバにおけるチューナーデバイスのパス
 # "DVB" と付くが ISDB-T/ISDB-S をはじめ ATSC などにも対応している
-# V4L2 DVB デバイスが接続されている場合、/dev/dvb/adapter0 などのディレクトリ配下に demux0, dvr0, frontend0 の各チューナーデバイスが存在する
+# V4L-DVB デバイスが接続されている場合、/dev/dvb/adapter0 などのディレクトリ配下に demux0, dvr0, frontend0 の各チューナーデバイスが存在する
 # chardev 版ドライバと異なりデバイス名からは機種や対応放送方式などは判別できないため、チューナーの種類によらず全てのデバイスを列挙する
 DVB_INTERFACE_TUNER_DEVICE_PATHS = [str(path) for path in Path('/dev/dvb').glob('adapter*/frontend*')]
 
