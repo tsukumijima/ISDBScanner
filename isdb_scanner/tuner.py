@@ -41,14 +41,32 @@ class ISDBTuner:
         self.output_recisdb_log = output_recisdb_log
 
         # 指定されたデバイスファイルに紐づくチューナーデバイスの情報を取得
-        self.device_path = device_path
-        self.device_type: Literal['Chardev', 'V4L-DVB']
-        self.type: Literal['ISDB-T', 'ISDB-S', 'ISDB-T/ISDB-S']
-        self.name: str
-        self.device_type, self.type, self.name = self.__getTunerDeviceInfo()
+        self._device_path = device_path
+        self._device_type: Literal['Chardev', 'V4L-DVB']
+        self._type: Literal['ISDB-T', 'ISDB-S', 'ISDB-T/ISDB-S']
+        self._name: str
+        self._device_type, self._type, self._name = self.__getTunerDeviceInfo()
 
         # 前回チューナーオープンが失敗した (TunerOpeningError が発生した) かどうか
-        self.last_tuner_opening_failed = False
+        self._last_tuner_opening_failed = False
+
+
+    # 読み取り専用プロパティ (インスタンス外部からの変更を禁止)
+    @property
+    def device_path(self) -> Path:
+        return self._device_path
+    @property
+    def device_type(self) -> Literal['Chardev', 'V4L-DVB']:
+        return self._device_type
+    @property
+    def type(self) -> Literal['ISDB-T', 'ISDB-S', 'ISDB-T/ISDB-S']:
+        return self._type
+    @property
+    def name(self) -> str:
+        return self._name
+    @property
+    def last_tuner_opening_failed(self) -> bool:
+        return self._last_tuner_opening_failed
 
 
     def __getTunerDeviceInfo(self) -> tuple[Literal['Chardev', 'V4L-DVB'], Literal['ISDB-T', 'ISDB-S', 'ISDB-T/ISDB-S'], str]:
@@ -63,14 +81,14 @@ class ISDBTuner:
         def GetPT1PT3PX4VideoDeviceInfo() -> tuple[Literal['ISDB-T', 'ISDB-S'], int]:
 
             # デバイスパスから数字部分を抽出
-            if str(self.device_path).startswith('/dev/pt1video'):
-                device_number = int(str(self.device_path).split('pt1video')[-1])
-            elif str(self.device_path).startswith('/dev/pt3video'):
-                device_number = int(str(self.device_path).split('pt3video')[-1])
-            elif str(self.device_path).startswith('/dev/px4video'):
-                device_number = int(str(self.device_path).split('px4video')[-1])
+            if str(self._device_path).startswith('/dev/pt1video'):
+                device_number = int(str(self._device_path).split('pt1video')[-1])
+            elif str(self._device_path).startswith('/dev/pt3video'):
+                device_number = int(str(self._device_path).split('pt3video')[-1])
+            elif str(self._device_path).startswith('/dev/px4video'):
+                device_number = int(str(self._device_path).split('px4video')[-1])
             else:
-                assert False, f'Unknown tuner device: {self.device_path}'
+                assert False, f'Unknown tuner device: {self._device_path}'
 
             # デバイスタイプとインデックスを自動判定
             # ISDB-T: 2,3,6,7,10,11,14,15 ... (2個おき)
@@ -83,33 +101,33 @@ class ISDBTuner:
                 tuner_type = 'ISDB-T'
                 tuner_number = (device_number - 2) // 4 * 2 + 1
             else:
-                assert False, f'Unknown tuner device: {self.device_path}'
+                assert False, f'Unknown tuner device: {self._device_path}'
             if remainder in [1, 3]:
                 tuner_number += 1
 
             return tuner_type, tuner_number
 
         # V4L-DVB 版ドライバのチューナーデバイス
-        if str(self.device_path).startswith('/dev/dvb'):
+        if str(self._device_path).startswith('/dev/dvb'):
             # システムで利用可能な DVB デバイスの中から、デバイスパスが一致するデバイス情報を探す
             for device_info in ISDBTuner.getAvailableDVBDeviceInfos():
-                if device_info.device_path == self.device_path:
+                if device_info.device_path == self._device_path:
                     return ('V4L-DVB', device_info.tuner_type, device_info.tuner_name)
 
         # ***** ここからは chardev 版ドライバのチューナーデバイス *****
 
         # Earthsoft PT1/PT2
-        if str(self.device_path).startswith('/dev/pt1video'):
+        if str(self._device_path).startswith('/dev/pt1video'):
             tuner_type, tuner_number = GetPT1PT3PX4VideoDeviceInfo()
-            return ('Chardev', tuner_type, f'Earthsoft PT1/PT2 ({tuner_type}) #{tuner_number}')
+            return ('Chardev', tuner_type, f'Earthsoft PT1/PT2 ({self.tunerTypeToPretty(tuner_type)}) #{tuner_number}')
 
         # Earthsoft PT3
-        if str(self.device_path).startswith('/dev/pt3video'):
+        if str(self._device_path).startswith('/dev/pt3video'):
             tuner_type, tuner_number = GetPT1PT3PX4VideoDeviceInfo()
-            return ('Chardev', tuner_type, f'Earthsoft PT3 ({tuner_type}) #{tuner_number}')
+            return ('Chardev', tuner_type, f'Earthsoft PT3 ({self.tunerTypeToPretty(tuner_type)}) #{tuner_number}')
 
         # PLEX PX-W3U4/PX-Q3U4/PX-W3PE4/PX-Q3PE4/PX-W3PE5/PX-Q3PE5 (PX4/PX5 Series)
-        if str(self.device_path).startswith('/dev/px4video'):
+        if str(self._device_path).startswith('/dev/px4video'):
             tuner_type, tuner_number = GetPT1PT3PX4VideoDeviceInfo()
 
             # PX4/PX5 チューナーの製造元の Digibest の Vendor ID
@@ -142,34 +160,34 @@ class ISDBTuner:
             ## 同一機種を複数接続している場合はチューナー名が重複するため、重複を削除
             tuner_name = '/'.join(list(set(tuner_names)))
 
-            return ('Chardev', tuner_type, f'PLEX {tuner_name} ({tuner_type}) #{tuner_number}')
+            return ('Chardev', tuner_type, f'PLEX {tuner_name} ({self.tunerTypeToPretty(tuner_type)}) #{tuner_number}')
 
         # PLEX PX-S1UR
-        if str(self.device_path).startswith('/dev/pxs1urvideo'):
-            return ('Chardev', 'ISDB-T', f'PLEX PX-S1UR #{int(str(self.device_path).split("pxs1urvideo")[-1]) + 1}')
+        if str(self._device_path).startswith('/dev/pxs1urvideo'):
+            return ('Chardev', 'ISDB-T', f'PLEX PX-S1UR #{int(str(self._device_path).split("pxs1urvideo")[-1]) + 1}')
 
         # PLEX PX-M1UR
-        if str(self.device_path).startswith('/dev/pxm1urvideo'):
-            return ('Chardev', 'ISDB-T/ISDB-S', f'PLEX PX-M1UR #{int(str(self.device_path).split("pxm1urvideo")[-1]) + 1}')
+        if str(self._device_path).startswith('/dev/pxm1urvideo'):
+            return ('Chardev', 'ISDB-T/ISDB-S', f'PLEX PX-M1UR #{int(str(self._device_path).split("pxm1urvideo")[-1]) + 1}')
 
         # PLEX PX-MLT5PE
-        if str(self.device_path).startswith('/dev/pxmlt5video'):
-            return ('Chardev', 'ISDB-T/ISDB-S', f'PLEX PX-MLT5PE #{int(str(self.device_path).split("pxmlt5video")[-1]) + 1}')
+        if str(self._device_path).startswith('/dev/pxmlt5video'):
+            return ('Chardev', 'ISDB-T/ISDB-S', f'PLEX PX-MLT5PE #{int(str(self._device_path).split("pxmlt5video")[-1]) + 1}')
 
         # PLEX PX-MLT8PE
-        if str(self.device_path).startswith('/dev/pxmlt8video'):
-            return ('Chardev', 'ISDB-T/ISDB-S', f'PLEX PX-MLT8PE #{int(str(self.device_path).split("pxmlt8video")[-1]) + 1}')
+        if str(self._device_path).startswith('/dev/pxmlt8video'):
+            return ('Chardev', 'ISDB-T/ISDB-S', f'PLEX PX-MLT8PE #{int(str(self._device_path).split("pxmlt8video")[-1]) + 1}')
 
         # e-better DTV02A-4TS-P
-        if str(self.device_path).startswith('/dev/isdb6014video'):
-            return ('Chardev', 'ISDB-T/ISDB-S', f'e-better DTV02A-4TS-P #{int(str(self.device_path).split("isdb6014video")[-1]) + 1}')
+        if str(self._device_path).startswith('/dev/isdb6014video'):
+            return ('Chardev', 'ISDB-T/ISDB-S', f'e-better DTV02A-4TS-P #{int(str(self._device_path).split("isdb6014video")[-1]) + 1}')
 
         # e-better DTV02A-1T1S-U
-        if str(self.device_path).startswith('/dev/isdb2056video'):
-            return ('Chardev', 'ISDB-T/ISDB-S', f'e-better DTV02A-1T1S-U #{int(str(self.device_path).split("isdb2056video")[-1]) + 1}')
+        if str(self._device_path).startswith('/dev/isdb2056video'):
+            return ('Chardev', 'ISDB-T/ISDB-S', f'e-better DTV02A-1T1S-U #{int(str(self._device_path).split("isdb2056video")[-1]) + 1}')
 
         # ここには到達しないはず
-        assert False, f'Unknown tuner device: {self.device_path}'
+        assert False, f'Unknown tuner device: {self._device_path}'
 
 
     def tune(self, physical_channel_recisdb: str, recording_time: float = 10.0, tune_timeout: float = 7.0) -> bytearray:
@@ -192,11 +210,11 @@ class ISDBTuner:
             TunerOutputError: 受信したデータが小さすぎる場合
         """
 
-        self.last_tuner_opening_failed = False
+        self._last_tuner_opening_failed = False
 
         # recisdb (チューナープロセス) を起動
         process = subprocess.Popen(
-            ['recisdb', 'tune', '--device', str(self.device_path), '--channel', physical_channel_recisdb, '--time', str(recording_time), '-'],
+            ['recisdb', 'tune', '--device', str(self._device_path), '--channel', physical_channel_recisdb, '--time', str(recording_time), '-'],
             stdout = subprocess.PIPE,
             stderr = subprocess.PIPE,
         )
@@ -267,7 +285,7 @@ class ISDBTuner:
                 'The tuner device is busy.',
                 'The tuner device does not support the ioctl system call.',
             ] or error_message.startswith('Cannot open the device.'):
-                self.last_tuner_opening_failed = True
+                self._last_tuner_opening_failed = True
                 raise TunerOpeningError(error_message)
 
             # それ以外は選局/受信時のエラーと判断
@@ -296,7 +314,7 @@ class ISDBTuner:
 
         # recisdb (チューナープロセス) を起動
         process = subprocess.Popen(
-            ['recisdb', 'checksignal', '--device', str(self.device_path), '--channel', physical_channel_recisdb],
+            ['recisdb', 'checksignal', '--device', str(self._device_path), '--channel', physical_channel_recisdb],
             stdout = subprocess.PIPE,
             stderr = None if self.output_recisdb_log is True else subprocess.DEVNULL,
         )
@@ -359,6 +377,24 @@ class ISDBTuner:
 
         # 平均信号レベルを返す
         return sum(signal_levels) / len(signal_levels)
+
+
+    @staticmethod
+    def tunerTypeToPretty(tuner_type: Literal['ISDB-T', 'ISDB-S', 'ISDB-T/ISDB-S']) -> Literal['Terrestrial', 'Satellite', 'Multi']:
+        """
+        チューナータイプを Pretty な文字列に変換する
+
+        Returns:
+            Literal['Terrestrial', 'Satellite', 'Multi']: チューナータイプの Pretty な文字列
+        """
+        if tuner_type == 'ISDB-T':
+            return 'Terrestrial'
+        elif tuner_type == 'ISDB-S':
+            return 'Satellite'
+        elif tuner_type == 'ISDB-T/ISDB-S':
+            return 'Multi'
+        else:
+            assert False, f'Unknown tuner type: {tuner_type}'
 
 
     @staticmethod
@@ -542,7 +578,7 @@ class ISDBTuner:
             # キャラクタデバイスファイルかつ ISDB-T 専用チューナーであればリストに追加
             if device_path.exists() and device_path.is_char_device():
                 tuner = ISDBTuner(device_path)
-                if tuner.type == 'ISDB-T':
+                if tuner._type == 'ISDB-T':
                     tuners.append(tuner)
 
         return tuners
@@ -580,7 +616,7 @@ class ISDBTuner:
             # キャラクタデバイスファイルかつ ISDB-S 専用チューナーであればリストに追加
             if device_path.exists() and device_path.is_char_device():
                 tuner = ISDBTuner(device_path)
-                if tuner.type == 'ISDB-S':
+                if tuner._type == 'ISDB-S':
                     tuners.append(tuner)
 
         return tuners
@@ -603,7 +639,7 @@ class ISDBTuner:
             # キャラクタデバイスファイルかつ ISDB-T/ISDB-S 共用チューナーであればリストに追加
             if device_path.exists() and device_path.is_char_device():
                 tuner = ISDBTuner(device_path)
-                if tuner.type == 'ISDB-T/ISDB-S':
+                if tuner._type == 'ISDB-T/ISDB-S':
                     tuners.append(tuner)
 
         return tuners
