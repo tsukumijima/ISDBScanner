@@ -1,6 +1,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from pydantic import BaseModel
 from pydantic import computed_field
 from pydantic import RootModel
@@ -111,7 +112,19 @@ class TransportStreamInfo(BaseModel):
 class TransportStreamInfoList(RootModel[list[TransportStreamInfo]]):
     root: list[TransportStreamInfo]
 
+class DVBDeviceInfo(BaseModel):
+    device_path: Path
+    tuner_type: Literal['Terrestrial', 'Satellite', 'Multi']
+    tuner_name: str
 
+
+# V4L2 DVB 版ドライバにおけるチューナーデバイスのパス
+# "DVB" と付くが ISDB-T/ISDB-S をはじめ ATSC などにも対応している
+# V4L2 DVB デバイスが接続されている場合、/dev/dvb/adapter0 などのディレクトリ配下に demux0, dvr0, frontend0 の各チューナーデバイスが存在する
+# chardev 版ドライバと異なりデバイス名からは機種や対応放送方式などは判別できないため、チューナーの種類によらず全てのデバイスを列挙する
+DVB_INTERFACE_TUNER_DEVICE_PATHS = [str(path) for path in Path('/dev/dvb').glob('adapter*/frontend*')]
+
+# chardev 版ドライバにおけるチューナーデバイスのパス
 # ref: https://github.com/tsukumijima/px4_drv
 # ref: https://github.com/stz2012/recpt1/blob/master/recpt1/pt1_dev.h
 
