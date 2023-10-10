@@ -119,10 +119,10 @@ class DVBDeviceInfo(BaseModel):
 
 
 # V4L-DVB 版ドライバにおけるチューナーデバイスのパス
-# "DVB" と付くが ISDB-T/ISDB-S をはじめ ATSC などにも対応している
+# 歴史的な経緯で "DVB" という名称だが ISDB-T/ISDB-S をはじめ ATSC などにも対応している
 # V4L-DVB デバイスが接続されている場合、/dev/dvb/adapter0 などのディレクトリ配下に demux0, dvr0, frontend0 の各チューナーデバイスが存在する
 # chardev 版ドライバと異なりデバイス名からは機種や対応放送方式などは判別できないため、チューナーの種類によらず全てのデバイスを列挙する
-DVB_INTERFACE_TUNER_DEVICE_PATHS = [str(path) for path in Path('/dev/dvb').glob('adapter*/frontend*')]
+DVB_INTERFACE_TUNER_DEVICE_PATHS = sorted([path for path in Path('/dev/dvb').glob('adapter*/frontend*')])
 
 # chardev 版ドライバにおけるチューナーデバイスのパス
 # ref: https://github.com/tsukumijima/px4_drv
@@ -134,48 +134,48 @@ DVB_INTERFACE_TUNER_DEVICE_PATHS = [str(path) for path in Path('/dev/dvb').glob(
 # PLEX PX-S1UR: 最大8台接続まで想定
 ISDBT_TUNER_DEVICE_PATHS = [
     # Earthsoft PT1/PT2
-    '/dev/pt1video2',
-    '/dev/pt1video3',
-    '/dev/pt1video6',
-    '/dev/pt1video7',
-    '/dev/pt1video10',
-    '/dev/pt1video11',
-    '/dev/pt1video14',
-    '/dev/pt1video15',
+    Path('/dev/pt1video2'),
+    Path('/dev/pt1video3'),
+    Path('/dev/pt1video6'),
+    Path('/dev/pt1video7'),
+    Path('/dev/pt1video10'),
+    Path('/dev/pt1video11'),
+    Path('/dev/pt1video14'),
+    Path('/dev/pt1video15'),
     # Earthsoft PT3
-    '/dev/pt3video2',
-    '/dev/pt3video3',
-    '/dev/pt3video6',
-    '/dev/pt3video7',
-    '/dev/pt3video10',
-    '/dev/pt3video11',
-    '/dev/pt3video14',
-    '/dev/pt3video15',
+    Path('/dev/pt3video2'),
+    Path('/dev/pt3video3'),
+    Path('/dev/pt3video6'),
+    Path('/dev/pt3video7'),
+    Path('/dev/pt3video10'),
+    Path('/dev/pt3video11'),
+    Path('/dev/pt3video14'),
+    Path('/dev/pt3video15'),
     # PLEX PX-W3U4/PX-Q3U4/PX-W3PE4/PX-Q3PE4/PX-W3PE5/PX-Q3PE5
-    '/dev/px4video2',
-    '/dev/px4video3',
-    '/dev/px4video6',
-    '/dev/px4video7',
-    '/dev/px4video10',
-    '/dev/px4video11',
-    '/dev/px4video14',
-    '/dev/px4video15',
+    Path('/dev/px4video2'),
+    Path('/dev/px4video3'),
+    Path('/dev/px4video6'),
+    Path('/dev/px4video7'),
+    Path('/dev/px4video10'),
+    Path('/dev/px4video11'),
+    Path('/dev/px4video14'),
+    Path('/dev/px4video15'),
     # PX-S1UR (1台目)
-    '/dev/pxs1urvideo0',
+    Path('/dev/pxs1urvideo0'),
     # PX-S1UR (2台目)
-    '/dev/pxs1urvideo1',
+    Path('/dev/pxs1urvideo1'),
     # PX-S1UR (3台目)
-    '/dev/pxs1urvideo2',
+    Path('/dev/pxs1urvideo2'),
     # PX-S1UR (4台目)
-    '/dev/pxs1urvideo3',
+    Path('/dev/pxs1urvideo3'),
     # PX-S1UR (5台目)
-    '/dev/pxs1urvideo4',
+    Path('/dev/pxs1urvideo4'),
     # PX-S1UR (6台目)
-    '/dev/pxs1urvideo5',
+    Path('/dev/pxs1urvideo5'),
     # PX-S1UR (7台目)
-    '/dev/pxs1urvideo6',
+    Path('/dev/pxs1urvideo6'),
     # PX-S1UR (8台目)
-    '/dev/pxs1urvideo7',
+    Path('/dev/pxs1urvideo7'),
 ]
 
 # ISDB-S 専用のチューナーデバイスのパス
@@ -183,32 +183,32 @@ ISDBT_TUNER_DEVICE_PATHS = [
 # PLEX PX-W3U4/PX-Q3U4/PX-W3PE4/PX-Q3PE4/PX-W3PE5/PX-Q3PE5: 全体で最大8チューナーまで想定
 ISDBS_TUNER_DEVICE_PATHS = [
     # Earthsoft PT1/PT2
-    '/dev/pt1video0',
-    '/dev/pt1video1',
-    '/dev/pt1video4',
-    '/dev/pt1video5',
-    '/dev/pt1video8',
-    '/dev/pt1video9',
-    '/dev/pt1video12',
-    '/dev/pt1video13',
+    Path('/dev/pt1video0'),
+    Path('/dev/pt1video1'),
+    Path('/dev/pt1video4'),
+    Path('/dev/pt1video5'),
+    Path('/dev/pt1video8'),
+    Path('/dev/pt1video9'),
+    Path('/dev/pt1video12'),
+    Path('/dev/pt1video13'),
     # Earthsoft PT3
-    '/dev/pt3video0',
-    '/dev/pt3video1',
-    '/dev/pt3video4',
-    '/dev/pt3video5',
-    '/dev/pt3video8',
-    '/dev/pt3video9',
-    '/dev/pt3video12',
-    '/dev/pt3video13',
+    Path('/dev/pt3video0'),
+    Path('/dev/pt3video1'),
+    Path('/dev/pt3video4'),
+    Path('/dev/pt3video5'),
+    Path('/dev/pt3video8'),
+    Path('/dev/pt3video9'),
+    Path('/dev/pt3video12'),
+    Path('/dev/pt3video13'),
     # PLEX PX-W3U4/PX-Q3U4/PX-W3PE4/PX-Q3PE4/PX-W3PE5/PX-Q3PE5
-    '/dev/px4video0',
-    '/dev/px4video1',
-    '/dev/px4video4',
-    '/dev/px4video5',
-    '/dev/px4video8',
-    '/dev/px4video9',
-    '/dev/px4video12',
-    '/dev/px4video13',
+    Path('/dev/px4video0'),
+    Path('/dev/px4video1'),
+    Path('/dev/px4video4'),
+    Path('/dev/px4video5'),
+    Path('/dev/px4video8'),
+    Path('/dev/px4video9'),
+    Path('/dev/px4video12'),
+    Path('/dev/px4video13'),
 ]
 
 # ISDB-T/ISDB-S 共用のマルチチューナーデバイスのパス
@@ -216,75 +216,75 @@ ISDBS_TUNER_DEVICE_PATHS = [
 # PLEX PX-M1UR, e-better DTV02A-1T1S-U: それぞれ最大8台接続まで想定
 ISDB_MULTI_TUNER_DEVICE_PATHS = [
     # DTV02A-4TS-P (1台目)
-    '/dev/isdb6014video0',
-    '/dev/isdb6014video1',
-    '/dev/isdb6014video2',
-    '/dev/isdb6014video3',
+    Path('/dev/isdb6014video0'),
+    Path('/dev/isdb6014video1'),
+    Path('/dev/isdb6014video2'),
+    Path('/dev/isdb6014video3'),
     # DTV02A-4TS-P (2台目)
-    '/dev/isdb6014video4',
-    '/dev/isdb6014video5',
-    '/dev/isdb6014video6',
-    '/dev/isdb6014video7',
+    Path('/dev/isdb6014video4'),
+    Path('/dev/isdb6014video5'),
+    Path('/dev/isdb6014video6'),
+    Path('/dev/isdb6014video7'),
     # PX-MLT5PE (1台目)
-    '/dev/pxmlt5video0',
-    '/dev/pxmlt5video1',
-    '/dev/pxmlt5video2',
-    '/dev/pxmlt5video3',
-    '/dev/pxmlt5video4',
+    Path('/dev/pxmlt5video0'),
+    Path('/dev/pxmlt5video1'),
+    Path('/dev/pxmlt5video2'),
+    Path('/dev/pxmlt5video3'),
+    Path('/dev/pxmlt5video4'),
     # PX-MLT5PE (2台目)
-    '/dev/pxmlt5video5',
-    '/dev/pxmlt5video6',
-    '/dev/pxmlt5video7',
-    '/dev/pxmlt5video8',
-    '/dev/pxmlt5video9',
+    Path('/dev/pxmlt5video5'),
+    Path('/dev/pxmlt5video6'),
+    Path('/dev/pxmlt5video7'),
+    Path('/dev/pxmlt5video8'),
+    Path('/dev/pxmlt5video9'),
     # PX-MLT8PE (1台目)
-    '/dev/pxmlt8video0',
-    '/dev/pxmlt8video1',
-    '/dev/pxmlt8video2',
-    '/dev/pxmlt8video3',
-    '/dev/pxmlt8video4',
-    '/dev/pxmlt8video5',
-    '/dev/pxmlt8video6',
-    '/dev/pxmlt8video7',
+    Path('/dev/pxmlt8video0'),
+    Path('/dev/pxmlt8video1'),
+    Path('/dev/pxmlt8video2'),
+    Path('/dev/pxmlt8video3'),
+    Path('/dev/pxmlt8video4'),
+    Path('/dev/pxmlt8video5'),
+    Path('/dev/pxmlt8video6'),
+    Path('/dev/pxmlt8video7'),
     # PX-MLT8PE (2台目)
-    '/dev/pxmlt8video8',
-    '/dev/pxmlt8video9',
-    '/dev/pxmlt8video10',
-    '/dev/pxmlt8video11',
-    '/dev/pxmlt8video12',
-    '/dev/pxmlt8video13',
-    '/dev/pxmlt8video14',
-    '/dev/pxmlt8video15',
+    Path('/dev/pxmlt8video8'),
+    Path('/dev/pxmlt8video9'),
+    Path('/dev/pxmlt8video10'),
+    Path('/dev/pxmlt8video11'),
+    Path('/dev/pxmlt8video12'),
+    Path('/dev/pxmlt8video13'),
+    Path('/dev/pxmlt8video14'),
+    Path('/dev/pxmlt8video15'),
     # DTV02A-1T1S-U (1台目)
-    '/dev/isdb2056video0',
+    Path('/dev/isdb2056video0'),
     # DTV02A-1T1S-U (2台目)
-    '/dev/isdb2056video1',
+    Path('/dev/isdb2056video1'),
     # DTV02A-1T1S-U (3台目)
-    '/dev/isdb2056video2',
+    Path('/dev/isdb2056video2'),
     # DTV02A-1T1S-U (4台目)
-    '/dev/isdb2056video3',
+    Path('/dev/isdb2056video3'),
     # DTV02A-1T1S-U (5台目)
-    '/dev/isdb2056video4',
+    Path('/dev/isdb2056video4'),
     # DTV02A-1T1S-U (6台目)
-    '/dev/isdb2056video5',
+    Path('/dev/isdb2056video5'),
     # DTV02A-1T1S-U (7台目)
-    '/dev/isdb2056video6',
+    Path('/dev/isdb2056video6'),
     # DTV02A-1T1S-U (8台目)
-    '/dev/isdb2056video7',
+    Path('/dev/isdb2056video7'),
     # PX-M1UR (1台目)
-    '/dev/pxm1urvideo0',
+    Path('/dev/pxm1urvideo0'),
     # PX-M1UR (2台目)
-    '/dev/pxm1urvideo1',
+    Path('/dev/pxm1urvideo1'),
     # PX-M1UR (3台目)
-    '/dev/pxm1urvideo2',
+    Path('/dev/pxm1urvideo2'),
     # PX-M1UR (4台目)
-    '/dev/pxm1urvideo3',
+    Path('/dev/pxm1urvideo3'),
     # PX-M1UR (5台目)
-    '/dev/pxm1urvideo4',
+    Path('/dev/pxm1urvideo4'),
     # PX-M1UR (6台目)
-    '/dev/pxm1urvideo5',
+    Path('/dev/pxm1urvideo5'),
     # PX-M1UR (7台目)
-    '/dev/pxm1urvideo6',
+    Path('/dev/pxm1urvideo6'),
     # PX-M1UR (8台目)
-    '/dev/pxm1urvideo7',
+    Path('/dev/pxm1urvideo7'),
 ]

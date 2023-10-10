@@ -22,7 +22,7 @@ from isdb_scanner.constants import TransportStreamInfo
 
 class TransportStreamAnalyzer(TransportStreamFile):
     """
-    ISDB-T / ISDB-S (地上波・BS・CS110) の TS ストリームに含まれる PSI/SI を解析するクラス
+    ISDB-T/ISDB-S (地上波・BS・CS110) の TS ストリームに含まれる PSI/SI を解析するクラス
     ariblib の TransportStreamFile を継承しているが、メモリ上に格納された TS ストリームを直接解析できる
     """
 

@@ -413,7 +413,7 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
         # Mirakurun のチューナー設定ファイル用のデータ構造に変換
         mirakurun_tuners: list[MirakurunTuner] = []
         for isdbt_tuner in self._isdbt_tuners:
-            # recpt1 は DVB チューナーに非対応なのでスキップ
+            # recpt1 は DVB 版チューナーに非対応なのでスキップ
             if self._recpt1_compatible is True and isdbt_tuner.device_type == 'V4L-DVB':
                 continue
             tuner: MirakurunTuner = {
@@ -428,7 +428,7 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
             tuner['isDisabled'] = False
             mirakurun_tuners.append(tuner)
         for isdbs_tuner in self._isdbs_tuners:
-            # recpt1 は DVB チューナーに非対応なのでスキップ
+            # recpt1 は DVB 版チューナーに非対応なのでスキップ
             if self._recpt1_compatible is True and isdbs_tuner.device_type == 'V4L-DVB':
                 continue
             tuner: MirakurunTuner = {
@@ -443,7 +443,7 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
             tuner['isDisabled'] = False
             mirakurun_tuners.append(tuner)
         for multi_tuner in self._multi_tuners:
-            # recpt1 は DVB チューナーに非対応なのでスキップ
+            # recpt1 は DVB 版チューナーに非対応なのでスキップ
             if self._recpt1_compatible is True and multi_tuner.device_type == 'V4L-DVB':
                 continue
             tuner: MirakurunTuner = {
@@ -601,7 +601,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
 
         # mirakc のチューナー設定ファイル用のデータ構造に変換
         for isdbt_tuner in self._isdbt_tuners:
-            # recpt1 は DVB チューナーに非対応なのでスキップ
+            # recpt1 は DVB 版チューナーに非対応なのでスキップ
             if self._recpt1_compatible is True and isdbt_tuner.device_type == 'V4L-DVB':
                 continue
             tuner: MirakcTuner = {
@@ -612,7 +612,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
             }
             cast(list[MirakcTuner], mirakc_config['tuners']).append(tuner)
         for isdbs_tuner in self._isdbs_tuners:
-            # recpt1 は DVB チューナーに非対応なのでスキップ
+            # recpt1 は DVB 版チューナーに非対応なのでスキップ
             if self._recpt1_compatible is True and isdbs_tuner.device_type == 'V4L-DVB':
                 continue
             tuner: MirakcTuner = {
@@ -623,7 +623,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
             }
             cast(list[MirakcTuner], mirakc_config['tuners']).append(tuner)
         for multi_tuner in self._multi_tuners:
-            # recpt1 は DVB チューナーに非対応なのでスキップ
+            # recpt1 は DVB 版チューナーに非対応なのでスキップ
             if self._recpt1_compatible is True and multi_tuner.device_type == 'V4L-DVB':
                 continue
             tuner: MirakcTuner = {
