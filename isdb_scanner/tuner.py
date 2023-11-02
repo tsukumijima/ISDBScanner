@@ -593,11 +593,12 @@ class ISDBTuner:
                 if vendor_id == 0x187f and product_id == 0x0600:
                     device_info.tuner_name = 'MyGica S270/S880i'
 
-                # PLEX PX-S1UD / VASTDTV VT20 (Terrestrial × 1)
+                # PLEX PX-S1UD / VASTDTV VT20 (Terrestrial × 1) / PLEX PX-Q1UD (Terrestrial × 4)
                 ## PX-S1UD と、VASTDTV VT20 として売られているチューナーは USB ID 含めパッケージ以外は同一の製品
                 ## VASTDTV VT20 が MyGica S270 として販売されている場合もあって謎…… (おそらく MyGica も VASTDTV も Geniatech のブランド名)
+                ## PLEX PX-Q1UD は PLEX PX-S1UD が内部 USB ハブで4つ接続されているだけのもので、USB ID もドライバも同一 (さすがに USB ID は分けろよ…)
                 if vendor_id == 0x3275 and product_id == 0x0080:
-                    device_info.tuner_name = 'PLEX PX-S1UD / VASTDTV VT20'
+                    device_info.tuner_name = 'PLEX PX-S1UD/PX-Q1UD / VASTDTV VT20'
 
             # 既知の PCI(e) チューナーデバイス
             elif Path(f'/sys/class/dvb/dvb{adapter_number}.frontend0/device/vendor').exists() and \
