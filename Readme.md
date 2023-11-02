@@ -35,18 +35,25 @@ BS・CS では、**BS・CS1・CS2 ごとに1つの物理チャンネルのみを
 
 - [ISDBScanner](#isdbscanner)
   - [対応チューナー](#対応チューナー)
+    - [chardev 版ドライバ](#chardev-版ドライバ)
+    - [DVB 版ドライバ](#dvb-版ドライバ)
   - [対応出力フォーマット](#対応出力フォーマット)
   - [インストール](#インストール)
   - [使い方](#使い方)
+    - [PC に接続されている利用可能なチューナーのリストを表示](#pc-に接続されている利用可能なチューナーのリストを表示)
+    - [チャンネルスキャンを実行](#チャンネルスキャンを実行)
   - [注意事項](#注意事項)
   - [License](#license)
 
 ## 対応チューナー
 
-現時点では、いわゆる chardev 版ドライバを使用するチューナーのみに対応しています。  
-[recisdb](https://github.com/kazuki0824/recisdb-rs) が V4L-DVB インターフェイスに対応していないため、現時点では V4L-DVB 版ドライバを使用するチューナーには対応していません。  
+[px4_drv](https://github.com/tsukumijima/px4_drv) / [smsusb (Linux カーネル標準ドライバ)](https://github.com/torvalds/linux/tree/master/drivers/media/usb/siano) 対応チューナー以外での動作は検証していませんが、おそらく動作すると思います。
 
-[px4_drv](https://github.com/tsukumijima/px4_drv) 対応チューナー以外での動作は検証していませんが、おそらく動作すると思います。
+> [!IMPORTANT]  
+> **DVB 版ドライバを利用するには、ISDBScanner v1.1.0 / [recisdb](https://github.com/kazuki0824/recisdb-rs) v1.2.0 (未リリース) 以降が必要です。**  
+> recisdb v1.1.0 以前のバージョンは DVB 版ドライバの操作に対応していません。
+
+### chardev 版ドライバ
 
 - [px4_drv](https://github.com/tsukumijima/px4_drv)
   - PX-W3U4
@@ -66,6 +73,20 @@ BS・CS では、**BS・CS1・CS2 ごとに1つの物理チャンネルのみを
   - Earthsoft PT2
 - [pt3_drv](https://github.com/m-tsudo/pt3)
   - Earthsoft PT3
+
+### DVB 版ドライバ
+
+動作検証は smsusb + VASTDTV VT20 のみ行っています。  
+ほかの PX-S1UD 同等品 (Siano SMS2270 採用チューナー) シリーズであれば同様に動作するはずです。
+
+ISDB-T / ISDB-S 対応であれば smsusb 以外のドライバ ([PT1・PT2](https://github.com/torvalds/linux/tree/master/drivers/media/pci/pt1) / [PT3](https://github.com/torvalds/linux/tree/master/drivers/media/pci/pt3) の DVB 版ドライバや [dddvb](https://github.com/DigitalDevices/dddvb) など) でも動作するはずですが、検証はできていません。  
+
+- [smsusb (Linux カーネル標準ドライバ)](https://github.com/torvalds/linux/tree/master/drivers/media/usb/siano)
+  - PLEX PX-S1UD
+  - PLEX PX-Q1UD
+  - MyGica S880i
+  - MyGica S270 (PLEX PX-S1UD 同等品)
+  - VASTDTV VT20 (PLEX PX-S1UD 同等品)
 
 ## 対応出力フォーマット
 
@@ -127,6 +148,7 @@ ISDBScanner は、引数で指定されたディレクトリ以下に複数の�
     - **`command` プロパティに記述されているチューナーコマンドには、[recpt1](https://github.com/stz2012/recpt1) コマンドが設定されています。**
       - recisdb をチューナーコマンドとして使用している場合は、代わりに tuners.yml を利用してください。
       - recpt1 に加え、`decoder` として arib-b25-stream-test コマンドが導入されていることを前提としています。
+      - recisdb と異なり recpt1 は DVB 版ドライバに対応していないため、DVB デバイスは記述から除外されます。
 - **mirakc**
   - **config.yml**
     - mirakc の設定ファイルです。
@@ -147,6 +169,7 @@ ISDBScanner は、引数で指定されたディレクトリ以下に複数の�
       - **`command` プロパティに記述されているチューナーコマンドには、[recpt1](https://github.com/stz2012/recpt1) コマンドが設定されています。**
         - recisdb をチューナーコマンドとして使用している場合は、代わりに config.yml を利用してください。
       - recpt1 に加え、`decode-filter` として arib-b25-stream-test コマンドが導入されていることを前提としています。
+      - recisdb と異なり recpt1 は DVB 版ドライバに対応していないため、DVB デバイスは記述から除外されます。
 
 ## インストール
 
@@ -160,6 +183,7 @@ ISDBScanner は、チューナー受信コマンドとして [recisdb](https://g
 > さらに recpt1 と異なり BS の物理チャンネルがハードコードされていないため、**将来 BS 帯域再編 (トランスポンダ/スロット移動) が行われた際も、recisdb を更新することなく ISDBScanner でのチャンネルスキャンと各設定ファイルの更新だけで対応できます。**
 
 以下の手順で、recisdb をインストールしてください。  
+下記は recisdb v1.1.0 時点でのインストール手順です。 
 
 ```bash
 # Deb パッケージは Ubuntu 20.04 LTS / Debian 11 以降に対応
@@ -192,12 +216,28 @@ sudo chmod +x /usr/local/bin/isdb-scanner
 
 ## 使い方
 
-![Screenshot](https://github.com/tsukumijima/ISDBScanner/assets/39271166/bda43f93-e081-413e-ab0f-455b8a915b79)
+![Screenshot](https://github.com/tsukumijima/ISDBScanner/assets/39271166/4c2caa09-4e0f-4bf8-a393-795562c36c9e)
 
 ISDBScanner は、引数で指定されたディレクトリ (デフォルト: `./scanned/`) 以下に複数のファイルを出力します。  
 出力される各ファイルのフォーマットは [対応出力フォーマット](#対応出力フォーマット) を参照してください。
 
-地上波・BS・CS すべてのチャンネルをスキャンする際は、`isdb-scanner` と実行してください (出力先ディレクトリを指定しない場合は `./scanned/` に出力されます)。  
+### PC に接続されている利用可能なチューナーのリストを表示
+
+![Screenshot](https://github.com/tsukumijima/ISDBScanner/assets/39271166/99a9fcd4-0afb-4c42-914a-d284fb3cf057)
+
+`isdb-scanner --list-tuners` と実行すると、PC に接続されている、利用可能なチューナーのリストが表示されます。
+
+PC に接続したはずのチューナーが認識されていない場合は、チューナードライバのインストール・ロード状態や、チューナーとの物理的な接続状況を確認してみてください。
+
+> [!NOTE]  
+> チューナーは chardev 版デバイスが先に認識され、DVB 版デバイスは後に認識されます。  
+> chardev 版デバイスと DVB 版デバイスが同時に接続されている場合、chardev 版デバイスの方を優先してチャンネルスキャンに使用します。
+
+### チャンネルスキャンを実行
+
+地上波・BS・CS すべてのチャンネルをスキャンする際は、`isdb-scanner` と実行してください。  
+出力先ディレクトリを指定しない場合は `./scanned/` に出力されます。  
+
 地上波と BS の無料放送のみをスキャン結果に含めたい場合は、`isdb-scanner --exclude-pay-tv` と実行してください。
 
 <img align="center" width="49%" src="https://github.com/tsukumijima/ISDBScanner/assets/39271166/d54dd1c9-0ad8-40a0-9678-60f5a1ea8fc6">
@@ -207,8 +247,8 @@ ISDBScanner は、引数で指定されたディレクトリ (デフォルト: `
 チャンネルスキャンに使おうとしたチューナーが現在使用中の際は、自動的に空いているチューナーを選択してスキャンを行います。  
 もし地上波で特定のチャンネルが受信できていない場合は、停波中でないかや受信状態などを確認してみてください。
 
-なお、スキャンには地デジ・BS・CS のフルスキャンを行う場合で 6 分程度、地デジ・BS の無料放送のみをスキャンする場合で 3 分程度かかります。  
-コマンドを実行して放置しておくのがおすすめです。
+なお、チャンネルスキャンには地デジ・BS・CS のフルスキャンを行う場合で 6 分程度、地デジ・BS の無料放送のみをスキャンする場合で 5 分半程度かかります。  
+コマンドを実行した後は終わるまで放置しておくのがおすすめです。
 
 > [!IMPORTANT]  
 > **地上波で複数の中継局の電波を受信できる地域にお住まいの場合、同一のチャンネルが重複して検出されることがあります。**  
@@ -221,8 +261,10 @@ ISDBScanner は、引数で指定されたディレクトリ (デフォルト: `
 ## 注意事項
 
 - **すでに Mirakurun / mirakc を導入している環境でチャンネルスキャンを行う際は、できるだけ Mirakurun / mirakc を停止してから行ってください。**
-  - ISDBScanner は Mirakurun / mirakc を経由せず、recisdb を通して直にチューナーデバイスにアクセスします。**チャンネルスキャンと Mirakurun / mirakc による EPG 更新や録画のタイミングが重なると、チューナー数次第ではチューナーが不足してスキャンに失敗する可能性があります。**
-  - 録画中でないことを確認の上一旦 Mirakurun / mirakc サービスを停止し、ほかのソフトにチューナーを横取りされない状況でスキャンすることをおすすめします。スキャン完了後は停止した Mirakurun / mirakc サービスの再開を忘れずに。
+  - ISDBScanner は Mirakurun / mirakc を経由せず、recisdb を通してダイレクトにチューナーデバイスにアクセスします。  
+    **チャンネルスキャンと Mirakurun / mirakc による EPG 更新や録画のタイミングが重なると、チューナー数次第ではチューナーが不足してスキャンに失敗する可能性があります。**
+  - 録画中でないことを確認の上一旦 Mirakurun / mirakc サービスを停止し、ほかのソフトにチューナーを横取りされない状況でスキャンすることをおすすめします。  
+    スキャン完了後は停止した Mirakurun / mirakc サービスの再開を忘れずに。
 - **EDCB-Wine のチャンネル設定ファイルを実稼働環境に反映する場合は、EDCB-Wine で利用している Mirakurun / mirakc のチャンネル設定ファイルも、必ず同時に更新してください。**
   - BonDriver は物理チャンネル自体の数値ではなく基本 0 からの連番となる「通し番号」でチャンネル切り替えを行う仕様になっていて、ChSet4.txt にはこの通し番号が記載されています。
     - EDCB-Wine で利用している BonDriver_mirakc の場合、Mirakurun / mirakc 側で登録した物理チャンネルの配列インデックスがそのまま「通し番号」になります。
