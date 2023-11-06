@@ -242,6 +242,7 @@ PC に接続したはずのチューナーが認識されていない場合は�
 
 <img align="center" width="49%" src="https://github.com/tsukumijima/ISDBScanner/assets/39271166/d54dd1c9-0ad8-40a0-9678-60f5a1ea8fc6">
 <img align="center" width="49%" src="https://github.com/tsukumijima/ISDBScanner/assets/39271166/59368ddb-38b4-40fe-9c7f-7aee39828d13">
+<br><br>
 
 **チャンネルスキャン中は、検出されたトランスポートストリーム / チャンネル (サービス) のリストとスキャンの進捗状況が、リアルタイムでグラフィカルに表示されます。**  
 チャンネルスキャンに使おうとしたチューナーが現在使用中の際は、自動的に空いているチューナーを選択してスキャンを行います。  
