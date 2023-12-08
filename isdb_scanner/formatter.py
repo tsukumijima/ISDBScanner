@@ -94,9 +94,18 @@ class JSONFormatter(BaseFormatter):
             str: フォーマットされた文字列
         """
 
+        # BS のみ、有料放送を除外する場合で、TS 内のサービスが空 (= TS 内に無料放送サービスが存在しない) ならその TS 自体を削除する
+        # (有料放送を除外する場合は、この時点ですでに各 TS 情報のサービス情報から有料放送が除外されている)
+        ## 正確には有料放送の TS に無料独立データ放送が含まれる場合もあるので (WOWOW など) 、それらも除外してから判定する
+        ## 独立データ放送の service_type は 0xC0 なので、それ以外のサービスが空かどうかで判定する
+        bs_ts_infos = list(filter((
+            lambda ts_info: (self._exclude_pay_tv is False) or
+            (len([service for service in ts_info.services if service.service_type != 0xC0]) > 0)
+        ), copy.deepcopy(self._bs_ts_infos)))
+
         channels_dict = {
             'Terrestrial': TransportStreamInfoList(root=self._terrestrial_ts_infos).model_dump(mode='json'),
-            'BS': TransportStreamInfoList(root=self._bs_ts_infos).model_dump(mode='json'),
+            'BS': TransportStreamInfoList(root=bs_ts_infos).model_dump(mode='json'),
             'CS': TransportStreamInfoList(root=self._cs_ts_infos).model_dump(mode='json'),
         }
         formatted_str = json.dumps(channels_dict, indent=4, ensure_ascii=False)
@@ -152,7 +161,7 @@ class EDCBChSet4TxtFormatter(BaseFormatter):
         for ts_infos in [terrestrial_ts_infos, bs_ts_infos, cs_ts_infos]:
             ch = 0  # 地上波・BS・CS ごとにチューナー空間が異なるので、通し番号をリセットする
             for ts_info in ts_infos:
-                # 有料放送を除外する場合で、TS 内のサービスが空 (=TS内に無料放送サービスが存在しない) ならチャンネル自体を登録しない
+                # 有料放送を除外する場合で、TS 内のサービスが空 (= TS 内に無料放送サービスが存在しない) ならチャンネル自体を登録しない
                 # (有料放送を除外する場合は、この時点ですでに各 TS 情報のサービス情報から有料放送が除外されている)
                 ## 正確には有料放送の TS に無料独立データ放送が含まれる場合もあるので (WOWOW など) 、それらも除外してから判定する
                 ## 独立データ放送の service_type は 0xC0 なので、それ以外のサービスが空かどうかで判定する
@@ -236,7 +245,7 @@ class EDCBChSet5TxtFormatter(BaseFormatter):
         string_io = StringIO()
         writer = csv.writer(string_io, delimiter='\t', lineterminator='\r\n')
         for ts_info in ts_infos:
-            # 有料放送を除外する場合で、TS 内のサービスが空 (=TS内に無料放送サービスが存在しない) ならチャンネル自体を登録しない
+            # 有料放送を除外する場合で、TS 内のサービスが空 (= TS 内に無料放送サービスが存在しない) ならチャンネル自体を登録しない
             # (有料放送を除外する場合は、この時点ですでに各 TS 情報のサービス情報から有料放送が除外されている)
             ## 正確には有料放送の TS に無料独立データ放送が含まれる場合もあるので (WOWOW など) 、それらも除外してから判定する
             ## 独立データ放送の service_type は 0xC0 なので、それ以外のサービスが空かどうかで判定する
@@ -325,7 +334,7 @@ class MirakurunChannelsYmlFormatter(BaseFormatter):
             else:
                 mirakurun_name = ts_info.physical_channel
                 mirakurun_type = 'BS' if ts_info.broadcast_type == 'BS' else 'CS'
-                # 有料放送を除外する場合で、TS 内のサービスが空 (=TS内に無料放送サービスが存在しない) ならチャンネル自体を登録しない
+                # 有料放送を除外する場合で、TS 内のサービスが空 (= TS 内に無料放送サービスが存在しない) ならチャンネル自体を登録しない
                 # (有料放送を除外する場合は、この時点ですでに各 TS 情報のサービス情報から有料放送が除外されている)
                 ## 正確には有料放送の TS に無料独立データ放送が含まれる場合もあるので (WOWOW など) 、それらも除外してから判定する
                 ## 独立データ放送の service_type は 0xC0 なので、それ以外のサービスが空かどうかで判定する
@@ -573,7 +582,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
             else:
                 mirakc_name = ts_info.physical_channel
                 mirakc_type = 'BS' if ts_info.broadcast_type == 'BS' else 'CS'
-                # 有料放送を除外する場合で、TS 内のサービスが空 (=TS内に無料放送サービスが存在しない) ならチャンネル自体を登録しない
+                # 有料放送を除外する場合で、TS 内のサービスが空 (= TS 内に無料放送サービスが存在しない) ならチャンネル自体を登録しない
                 # (有料放送を除外する場合は、この時点ですでに各 TS 情報のサービス情報から有料放送が除外されている)
                 ## 正確には有料放送の TS に無料独立データ放送が含まれる場合もあるので (WOWOW など) 、それらも除外してから判定する
                 ## 独立データ放送の service_type は 0xC0 なので、それ以外のサービスが空かどうかで判定する
