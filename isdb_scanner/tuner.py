@@ -129,10 +129,10 @@ class ISDBTuner:
 
         # ***** ここからは chardev 版ドライバのチューナーデバイス *****
 
-        # Earthsoft PT1/PT2
+        # Earthsoft PT1 / PT2
         if str(self._device_path).startswith('/dev/pt1video'):
             tuner_type, tuner_number = GetPT1PT3PX4VideoDeviceInfo()
-            return ('Chardev', tuner_type, f'Earthsoft PT1/PT2 ({self.tunerTypeToPretty(tuner_type)}) #{tuner_number}')
+            return ('Chardev', tuner_type, f'Earthsoft PT1 / PT2 ({self.tunerTypeToPretty(tuner_type)}) #{tuner_number}')
 
         # Earthsoft PT3
         if str(self._device_path).startswith('/dev/pt3video'):
@@ -171,7 +171,7 @@ class ISDBTuner:
 
             # 重複するチューナー名を削除し、チューナー名を連結
             ## 同一機種を複数接続している場合はチューナー名が重複するため、重複を削除
-            tuner_name = '/'.join(list(set(tuner_names)))
+            tuner_name = ' / '.join(list(set(tuner_names)))
 
             return ('Chardev', tuner_type, f'PLEX {tuner_name} ({self.tunerTypeToPretty(tuner_type)}) #{tuner_number}')
 
@@ -591,14 +591,14 @@ class ISDBTuner:
                 # MyGica S270 (旧ロット?) / MyGica S880i (Terrestrial × 1)
                 ## 数年前まで販売されていた VASTDTV のパッケージになる前の製品と思われる
                 if vendor_id == 0x187f and product_id == 0x0600:
-                    device_info.tuner_name = 'MyGica S270/S880i'
+                    device_info.tuner_name = 'MyGica S270 / S880i'
 
                 # PLEX PX-S1UD / VASTDTV VT20 (Terrestrial × 1) / PLEX PX-Q1UD (Terrestrial × 4)
                 ## PX-S1UD と、VASTDTV VT20 として売られているチューナーは USB ID 含めパッケージ以外は同一の製品
                 ## VASTDTV VT20 が MyGica S270 として販売されている場合もあって謎…… (おそらく MyGica も VASTDTV も Geniatech のブランド名)
                 ## PLEX PX-Q1UD は PLEX PX-S1UD が内部 USB ハブで4つ接続されているだけのもので、USB ID もドライバも同一 (さすがに USB ID は分けろよ…)
                 if vendor_id == 0x3275 and product_id == 0x0080:
-                    device_info.tuner_name = 'PLEX PX-S1UD/PX-Q1UD / VASTDTV VT20'
+                    device_info.tuner_name = 'PLEX PX-S1UD / PX-Q1UD / VASTDTV VT20'
 
             # 既知の PCI(e) チューナーデバイス
             elif Path(f'/sys/class/dvb/dvb{adapter_number}.frontend0/device/vendor').exists() and \

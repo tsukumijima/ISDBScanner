@@ -133,7 +133,7 @@ DVB_INTERFACE_TUNER_DEVICE_PATHS = sorted([path for path in Path('/dev/dvb').glo
 # PLEX PX-W3U4/PX-Q3U4/PX-W3PE4/PX-Q3PE4/PX-W3PE5/PX-Q3PE5: 全体で最大8チューナーまで想定
 # PLEX PX-S1UR: 最大8台接続まで想定
 ISDBT_TUNER_DEVICE_PATHS = [
-    # Earthsoft PT1/PT2
+    # Earthsoft PT1 / PT2
     Path('/dev/pt1video2'),
     Path('/dev/pt1video3'),
     Path('/dev/pt1video6'),
@@ -182,7 +182,7 @@ ISDBT_TUNER_DEVICE_PATHS = [
 # Earthsoft PT1/PT2/PT3: 全体で最大8チューナーまで想定
 # PLEX PX-W3U4/PX-Q3U4/PX-W3PE4/PX-Q3PE4/PX-W3PE5/PX-Q3PE5: 全体で最大8チューナーまで想定
 ISDBS_TUNER_DEVICE_PATHS = [
-    # Earthsoft PT1/PT2
+    # Earthsoft PT1 / PT2
     Path('/dev/pt1video0'),
     Path('/dev/pt1video1'),
     Path('/dev/pt1video4'),
