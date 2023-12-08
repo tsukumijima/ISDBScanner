@@ -108,6 +108,11 @@ class JSONFormatter(BaseFormatter):
             'BS': TransportStreamInfoList(root=bs_ts_infos).model_dump(mode='json'),
             'CS': TransportStreamInfoList(root=self._cs_ts_infos).model_dump(mode='json'),
         }
+
+        # 有料放送を除外する場合、CS の TS 情報は空になっているはずなので、それを削除する
+        if self._exclude_pay_tv is True:
+            channels_dict.pop('CS')
+
         formatted_str = json.dumps(channels_dict, indent=4, ensure_ascii=False)
         return formatted_str
 
