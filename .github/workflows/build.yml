@@ -42,6 +42,16 @@ jobs:
           name: isdb-scanner
           path: dist/isdb-scanner
 
+      - name: Build Wheel
+        run: |
+          poetry build
+
+      - name: Upload Wheel as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: isdb-scanner-wheel
+          path: dist/isdb_scanner-*.whl
+
   build-linux-arm:
     runs-on: ubuntu-20.04
     steps:
@@ -125,6 +135,12 @@ jobs:
           name: isdb-scanner-arm
           path: dist
 
+      - name: Download Artifact (wheel)
+        uses: actions/download-artifact@v3
+        with:
+          name: isdb-scanner-wheel
+          path: dist
+
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
@@ -132,3 +148,4 @@ jobs:
           files: |
             ./dist/isdb-scanner
             ./dist/isdb-scanner-arm
+            ./dist/isdb_scanner-*.whl
