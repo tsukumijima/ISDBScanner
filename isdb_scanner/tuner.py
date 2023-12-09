@@ -491,7 +491,7 @@ class ISDBTuner:
 
         # DVB フロントエンドデバイスを開く
         try:
-            fe_fd = open(device_path, 'rb+', buffering=0)
+            fe_fd = open(device_path, 'rb', buffering=0)
         except Exception as e:
             print(f'[red]Failed to open tuner device: {e}[/red]')
             return None
