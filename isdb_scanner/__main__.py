@@ -64,15 +64,15 @@ def main(
     if list_tuners is True:
         print('[bright_blue]Available ISDB-T tuners:[/bright_blue]')
         for tuner in ISDBTuner.getAvailableISDBTOnlyTuners():
-            print(f'  [{tuner.device_type}] [green]{tuner.name}[/green] ({tuner.device_path})')
+            print(f'  [{tuner.device_type}] [green]{tuner.name}[/green] ({tuner.device_path}) {"(Busy)" if tuner.isBusy() else ""}')
         print(Rule(characters='=', style=Style(color='#E33157')))
         print('[bright_blue]Available ISDB-S tuners:[/bright_blue]')
         for tuner in ISDBTuner.getAvailableISDBSOnlyTuners():
-            print(f'  [{tuner.device_type}] [green]{tuner.name}[/green] ({tuner.device_path})')
+            print(f'  [{tuner.device_type}] [green]{tuner.name}[/green] ({tuner.device_path}) {"(Busy)" if tuner.isBusy() else ""}')
         print(Rule(characters='=', style=Style(color='#E33157')))
         print('[bright_blue]Available ISDB-T/ISDB-S multi tuners:[/bright_blue]')
         for tuner in ISDBTuner.getAvailableMultiTuners():
-            print(f'  [{tuner.device_type}] [green]{tuner.name}[/green] ({tuner.device_path})')
+            print(f'  [{tuner.device_type}] [green]{tuner.name}[/green] ({tuner.device_path}) {"(Busy)" if tuner.isBusy() else ""}')
         print(Rule(characters='=', style=Style(color='#E33157')))
         return
 

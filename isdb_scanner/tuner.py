@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ctypes
+import errno
 import fcntl
 import libusb_package
 import re
@@ -202,6 +203,28 @@ class ISDBTuner:
         # 対応していない (定義されていない) chardev 版チューナーの場合は TunerNotSupportedError を送出
         ## 現状すべて網羅しているつもりだが、念のため
         raise TunerNotSupportedError(f'Unsupported tuner device (Chardev): {self._device_path}')
+
+
+    def isBusy(self) -> bool:
+        """
+        チューナーデバイスが使用中かどうかを取得する
+
+        Returns:
+            bool: チューナーデバイスが使用中かどうか
+        """
+
+        # チューナーデバイスが使用中かどうかを取得
+        ## チューナーが使用中の場合は errno が EALREADY (Chardev) EBUSY (V4L-DVB) になる
+        try:
+            # 書き込みモードで開くことで、V4L-DVB チューナーが使用中かどうかを判定できる
+            with open(self._device_path, 'rb+'):
+                pass
+        except OSError as ex:
+            if ex.errno == errno.EALREADY or ex.errno == errno.EBUSY:
+                return True
+
+        # チューナーデバイスが使用中でない場合は False を返す
+        return False
 
 
     def tune(self, physical_channel_recisdb: str, recording_time: float = 10.0, tune_timeout: float = 7.0) -> bytearray:
