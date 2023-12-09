@@ -227,6 +227,27 @@ class ISDBTuner:
         return False
 
 
+    def isBusyFromLsof(self) -> bool:
+        """
+        lsof コマンドからチューナーデバイスが使用中かどうかを取得する
+        isBusy() と異なりチューナーデバイスを開かないが、root 以外では他ユーザーのチューナーデバイスの使用を検出できない制限がある
+        lsof コマンドがインストールされていない場合は False を返す
+
+        Returns:
+            bool: チューナーデバイスが使用中かどうか
+        """
+
+        try:
+            subprocess.run(['lsof', str(self._device_path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+        except FileNotFoundError:
+            return False
+        except subprocess.CalledProcessError:
+            # チューナーデバイスが使用中でない場合は exit-code が 0 以外になり、CalledProcessError が発生する
+            return False
+
+        return True
+
+
     def tune(self, physical_channel_recisdb: str, recording_time: float = 10.0, tune_timeout: float = 7.0) -> bytearray:
         """
         チューナーデバイスから指定された物理チャンネルを受信し、選局/受信できなかった場合は例外を送出する
