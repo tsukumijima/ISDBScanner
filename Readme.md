@@ -206,11 +206,11 @@ ISDBScanner 自体は Python スクリプトですが、Python 3.11 がインス
 
 ```bash
 # x86_64 環境
-sudo wget https://github.com/tsukumijima/ISDBScanner/releases/download/v1.1.1/isdb-scanner -O /usr/local/bin/isdb-scanner
+sudo wget https://github.com/tsukumijima/ISDBScanner/releases/download/v1.1.2/isdb-scanner -O /usr/local/bin/isdb-scanner
 sudo chmod +x /usr/local/bin/isdb-scanner
 
 # arm64 環境
-sudo wget https://github.com/tsukumijima/ISDBScanner/releases/download/v1.1.1/isdb-scanner-arm -O /usr/local/bin/isdb-scanner
+sudo wget https://github.com/tsukumijima/ISDBScanner/releases/download/v1.1.2/isdb-scanner-arm -O /usr/local/bin/isdb-scanner
 sudo chmod +x /usr/local/bin/isdb-scanner
 ```
 
