@@ -50,8 +50,8 @@ BS・CS では、**BS・CS1・CS2 ごとに1つの物理チャンネルのみを
 [px4_drv](https://github.com/tsukumijima/px4_drv) / [smsusb (Linux カーネル標準ドライバ)](https://github.com/torvalds/linux/tree/master/drivers/media/usb/siano) 対応チューナー以外での動作は検証していませんが、おそらく動作すると思います。
 
 > [!IMPORTANT]  
-> **DVB 版ドライバを利用するには、ISDBScanner v1.1.0 / [recisdb](https://github.com/kazuki0824/recisdb-rs) v1.2.0 (未リリース) 以降が必要です。**  
-> recisdb v1.1.0 以前のバージョンは DVB 版ドライバの操作に対応していません。
+> **DVB 版ドライバを利用するには、ISDBScanner v1.1.0 / [recisdb](https://github.com/kazuki0824/recisdb-rs) v1.2.1 以降が必要です。**  
+> recisdb v1.2.0 以前のバージョンは DVB 版ドライバの操作に対応していません。
 
 ### chardev 版ドライバ
 
@@ -183,26 +183,26 @@ ISDBScanner は、チューナー受信コマンドとして [recisdb](https://g
 > さらに recpt1 と異なり BS の物理チャンネルがハードコードされていないため、**将来 BS 帯域再編 (トランスポンダ/スロット移動) が行われた際も、recisdb を更新することなく ISDBScanner でのチャンネルスキャンと各設定ファイルの更新だけで対応できます。**
 
 以下の手順で、recisdb をインストールしてください。  
-下記は recisdb v1.1.0 時点でのインストール手順です。 
+下記は recisdb v1.2.1 時点でのインストール手順です。 
 
 ```bash
 # Deb パッケージは Ubuntu 20.04 LTS / Debian 11 以降に対応
 
 # x86_64 環境
-wget https://github.com/kazuki0824/recisdb-rs/releases/download/1.1.0/recisdb_1.1.0_amd64.deb
-sudo apt install ./recisdb_1.1.0_amd64.deb
-rm ./recisdb_1.1.0_amd64.deb
+wget https://github.com/kazuki0824/recisdb-rs/releases/download/1.2.1/recisdb_1.2.1-1_amd64.deb
+sudo apt install ./recisdb_1.2.1-1_amd64.deb
+rm ./recisdb_1.2.1-1_amd64.deb
 
 # arm64 環境
-wget https://github.com/kazuki0824/recisdb-rs/releases/download/1.1.0/recisdb_1.1.0_arm64.deb
-sudo apt install ./recisdb_1.1.0_arm64.deb
-rm ./recisdb_1.1.0_arm64.deb
+wget https://github.com/kazuki0824/recisdb-rs/releases/download/1.2.1/recisdb_1.2.1-1_arm64.deb
+sudo apt install ./recisdb_1.2.1-1_arm64.deb
+rm ./recisdb_1.2.1-1_arm64.deb
 ```
 > [!NOTE]  
 > アンインストールは `sudo apt remove recisdb` で行えます。
 
 ISDBScanner 自体は Python スクリプトですが、Python 3.11 がインストールされていない環境でも動かせるよう、PyInstaller でシングルバイナリ化した実行ファイルを公開しています。  
-以下の手順で、ISDBScanner をインストールしてください。
+下記は ISDBScanner v1.1.2 時点でのインストール手順です。
 
 ```bash
 # x86_64 環境
@@ -225,7 +225,8 @@ ISDBScanner は、引数で指定されたディレクトリ (デフォルト: `
 
 ![Screenshot](https://github.com/tsukumijima/ISDBScanner/assets/39271166/99a9fcd4-0afb-4c42-914a-d284fb3cf057)
 
-`isdb-scanner --list-tuners` と実行すると、PC に接続されている、利用可能なチューナーのリストが表示されます。
+`isdb-scanner --list-tuners` と実行すると、PC に接続されている、利用可能なチューナーのリストが表示されます。  
+チューナーが現在使用中の場合、チューナー情報の横に `(Busy)` と表示されます。
 
 PC に接続したはずのチューナーが認識されていない場合は、チューナードライバのインストール・ロード状態や、チューナーとの物理的な接続状況を確認してみてください。
 
