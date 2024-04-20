@@ -726,9 +726,9 @@ class ISDBTuner:
             if device_info.tuner_name not in device_infos_grouped:
                 device_infos_grouped[device_info.tuner_name] = []
             device_infos_grouped[device_info.tuner_name].append(device_info)
-        for device_infos in device_infos_grouped.values():
-            device_infos.sort(key=lambda x: x.device_path)
-            for i, device_info in enumerate(device_infos):
+        for device_infos_in_group in device_infos_grouped.values():
+            device_infos_in_group.sort(key=lambda x: x.device_path)
+            for i, device_info in enumerate(device_infos_in_group):
                 device_info.tuner_name += f' #{i + 1}'
 
         return device_infos
