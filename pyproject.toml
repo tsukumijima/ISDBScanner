@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "isdb-scanner"
 version = "1.1.2"
-description = ""
+description = "受信可能な日本のテレビチャンネル (ISDB-T/ISDB-S) を全自動でスキャンし、スキャン結果を様々な形式で出力するツール"
 authors = ["tsukumi <tsukumijima@users.noreply.github.com>"]
 license = "MIT"
 readme = "Readme.md"
