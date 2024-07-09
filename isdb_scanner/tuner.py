@@ -644,6 +644,10 @@ class ISDBTuner:
                 if vendor_id == 0x3275 and product_id == 0x0080:
                     device_info.tuner_name = 'PLEX PX-S1UD / PX-Q1UD / VASTDTV VT20'
 
+                # PLEX PX-BCUD (廃番)
+                elif vendor_id == 0x3275 and product_id == 0x0085:
+                    device_info.tuner_name = 'PLEX PX-BCUD'
+
             # 既知の PCI(e) チューナーデバイス
             elif Path(f'/sys/class/dvb/dvb{adapter_number}.frontend0/device/vendor').exists() and \
                  Path(f'/sys/class/dvb/dvb{adapter_number}.frontend0/device/device').exists() and \
