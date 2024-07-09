@@ -129,25 +129,40 @@ class TransportStreamAnalyzer(TransportStreamFile):
                             ts_info.network_name = self.__fullWidthToHalfWith(network_name.char)
                             break
 
-            # BS のスロット番号を 0 からの連番に振り直す
+            # BS のスロット番号を適切に振り直す
             ## TSID は ARIB TR-B15 第三分冊 第一部 第七編 8.1.1 の規定により末尾 3bit がスロット番号となっていて、
             ## ISDB-S の TMCC 信号内の相対 TS 番号と同一になるとされている
-            ## ところが、BS 帯域再編の影響でスロット番号 0 を持つ TS が存在しない場合がある
+            ## ところが、BS 帯域再編や閉局の影響でスロット番号に歯抜けが生じる場合がある
             ## (規定にも「ただし例外として、再編により相対 TS 番号の若い TS が他中継器へ移動あるいは消滅する場合は、
             ## 残る TS に対し相対 TS 番号を前詰めとし、bit (2-0) は従前の値を継承して割り付けることを可能とする」とある)
-            ## 一方 px4_drv は選局時に 0 スタートかつ歯抜けがない連番の相対 TS 番号を求めるため、スロット番号に齟齬が生じる
-            ## ここでは便宜上スロット番号を多くのチューナーが要求する 0 からの連番 (≒ TMCC 信号内の相対 TS 番号 (?)) に振り直すこととする
+            ## 一方 px4_drv は選局時に 0 スタートの相対 TS 番号を求めるため、スロット番号に齟齬が生じる
+            ## ここでは、相対 TS 番号が 0 スタートになるよう、適切に相対 TS 番号を振り直すこととする
+            ## 同じトランスポンダ (中継器) の中にかつて TS0, TS1, TS2, TS3 が放送されていたと仮定した際、下記の通り振る舞う
+            ## 1. 再編や閉局で TS0, TS1 が消滅した場合、消滅した分の相対 TS 番号分、旧 TS2, TS3 をそれぞれ TS0, TS1 に相対 TS 番号をずらす
+            ## 2. 再編や閉局で TS2 が消滅した場合、物理的には TS2 は残存している (ヌルパケットが送られている) ため、相対 TS 番号の振り直しは行わない
+            ## 3. 再編や閉局で TS0, TS2 が消滅した場合、旧 TS1 を TS0 に、旧 TS3 を TS2 とする (旧 TS2 、現在 TS1 は物理的にはまだ存在しているため残す)
             # 同じトランスポンダ (中継器) を持つ TS ごとにグループ化
-            groups: defaultdict[int, list[TransportStreamInfo]] = defaultdict(list)
+            bs_groups: defaultdict[int, list[TransportStreamInfo]] = defaultdict(list)
             for ts_info in ts_infos.values():
                 if ts_info.network_id == 4 and ts_info.satellite_transponder is not None:
-                    groups[ts_info.satellite_transponder].append(ts_info)
-            # 各グループをスロット番号順にソートし、satellite_slot を連番で振り直して、合わせて physical_channel を更新する
-            for group in groups.values():
-                group.sort(key=lambda ts_info: ts_info.satellite_slot_number or -1)
-                for count, ts_info in enumerate(group):
-                    ts_info.satellite_slot_number = count
-                    ts_info.physical_channel = f'BS{ts_info.satellite_transponder:02d}/TS{ts_info.satellite_slot_number}'
+                    bs_groups[ts_info.satellite_transponder].append(ts_info)
+            # 各グループをスロット番号順にソートし、satellite_slot を適切に振り直して、合わせて physical_channel を更新する
+            for bs_group in bs_groups.values():
+                bs_group.sort(key=lambda ts_info: ts_info.satellite_slot_number or -1)
+                slot_numbers = [ts_info.satellite_slot_number for ts_info in bs_group if ts_info.satellite_slot_number is not None]
+                new_slot_numbers: list[int] = []
+                # 相対 TS 番号を適切に詰める
+                if 0 not in slot_numbers:
+                    # 0 が存在しない場合のみ、他の相対 TS 番号を前にずらす
+                    shift = min(slot_numbers)
+                    new_slot_numbers = [slot - shift for slot in slot_numbers]
+                else:
+                    # 0 が存在する場合は変更しない
+                    new_slot_numbers = slot_numbers
+                # 新しいスロット番号を割り当てる
+                for ts_info, new_slot in zip(bs_group, new_slot_numbers):
+                    ts_info.satellite_slot_number = new_slot
+                    ts_info.physical_channel = f'BS{ts_info.satellite_transponder:02d}/TS{new_slot}'
 
             # 解析中の TS ストリーム選局時の物理チャンネルが地上波 ("T13" など) なら、常に選局した 1TS のみが取得されるはず
             ## 地上波では当然ながら PSI/SI からは受信中の物理チャンネルを判定できないので、ここで別途セットする
