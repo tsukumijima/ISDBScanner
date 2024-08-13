@@ -29,6 +29,11 @@ from isdb_scanner.tuner import TunerOutputError
 from isdb_scanner.tuner import TunerTuningError
 
 
+def version(value: bool):
+    if value is True:
+        typer.echo(f'ISDBScanner version {__version__}')
+        raise typer.Exit()
+
 app = typer.Typer()
 
 @app.command(help='ISDBScanner: Scans Japanese TV broadcast channels (ISDB-T/ISDB-S) and outputs results in various formats (depends on recisdb)')
@@ -37,6 +42,7 @@ def main(
     exclude_pay_tv: bool = typer.Option(False, help='Exclude pay-TV channels from scan results and include only free-to-air terrestrial and BS channels.'),
     output_recisdb_log: bool = typer.Option(False, help='Output recisdb log to stderr.'),
     list_tuners: bool = typer.Option(False, help='List available ISDB-T/ISDB-S tuners and exit.'),
+    version: bool = typer.Option(None, '--version', callback=version, is_eager=True, help='Show version information.'),
 ):
 
     print(Rule(
