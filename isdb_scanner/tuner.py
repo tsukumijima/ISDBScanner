@@ -512,6 +512,7 @@ class ISDBTuner:
         DTV_ENUM_DELSYS = 44
 
         # 配信システムの列挙型
+        ## ref: https://github.com/torvalds/linux/blob/v6.10/include/uapi/linux/dvb/frontend.h#L676-L697
         class fe_delivery_system(IntEnum):
             SYS_UNDEFINED = 0
             SYS_DVBC_ANNEX_A = 1
@@ -532,6 +533,7 @@ class ISDBTuner:
             SYS_DVBT2 = 16
             SYS_TURBO = 17
             SYS_DVBC_ANNEX_C = 18
+            SYS_DVBC2 = 19
 
         # DVB フロントエンドデバイスを開く
         try:
