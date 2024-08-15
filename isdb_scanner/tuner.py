@@ -492,9 +492,16 @@ class ISDBTuner:
             ]
         class DtvProperty(ctypes.Structure):
             class _u(ctypes.Union):
+                class _buffer(ctypes.Structure):
+                    _fields_ = [
+                        ('data', ctypes.c_uint8 * 32),
+                        ('len', ctypes.c_uint32),
+                        ('reserved1', ctypes.c_uint32 * 3),
+                        ('reserved2', ctypes.c_void_p)
+                    ]
                 _fields_ = [
                     ('data', ctypes.c_uint32),
-                    ('buffer', ctypes.c_uint8 * 32)
+                    ('buffer', _buffer)
                 ]
             _fields_ = [
                 ('cmd', ctypes.c_uint32),
@@ -570,8 +577,8 @@ class ISDBTuner:
         # Linux カーネルでは様々な配信方式がサポートされているが、ここでは ISDB-T/ISDB-S に対応しているかだけを調べる
         isdbt_supported: bool = False
         isdbs_supported: bool = False
-        for i in range(dtv_prop.u.data):
-            delivery_system = fe_delivery_system(dtv_prop.u.buffer[i])
+        for i in range(dtv_prop.u.buffer.len):
+            delivery_system = fe_delivery_system(dtv_prop.u.buffer.data[i])
             if delivery_system == fe_delivery_system.SYS_ISDBT:
                 isdbt_supported = True
             elif delivery_system == fe_delivery_system.SYS_ISDBS:
