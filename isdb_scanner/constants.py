@@ -1,6 +1,7 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from pathlib import Path
 from pydantic import BaseModel
 from pydantic import computed_field
@@ -11,6 +12,13 @@ from typing import Literal
 # Pydantic モデルの定義
 
 BroadcastType = Literal['Terrestrial', 'BS', 'CS1', 'CS2']
+
+# Typer が Literal をサポートしていないため、StrEnum を使用する
+# ref: https://github.com/fastapi/typer/issues/76
+class LNBVoltage(StrEnum):
+    _11V = '11v'
+    _15V = '15v'
+    LOW = 'low'
 
 class ServiceInfo(BaseModel):
     channel_number: str = 'Unknown'  # 3桁チャンネル番号 (BS/CS ではサービス ID と同一)

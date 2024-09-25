@@ -24,6 +24,7 @@ from isdb_scanner.constants import (
     ISDBT_TUNER_DEVICE_PATHS,
     ISDBS_TUNER_DEVICE_PATHS,
     ISDB_MULTI_TUNER_DEVICE_PATHS,
+    LNBVoltage,
 )
 
 
@@ -31,12 +32,13 @@ class ISDBTuner:
     """ ISDB-T/ISDB-S チューナーデバイスを操作するクラス (recisdb のラッパー) """
 
 
-    def __init__(self, device_path: Path, output_recisdb_log: bool = False) -> None:
+    def __init__(self, device_path: Path, lnb: LNBVoltage = LNBVoltage.LOW, output_recisdb_log: bool = False) -> None:
         """
         ISDBTuner を初期化する
 
         Args:
             device_path (Path): デバイスファイルのパス
+            lnb (LNBVoltage, optional): LNB 給電を行うかどうか. Defaults to LNBVoltage.LOW.
             output_recisdb_log (bool, optional): recisdb のログを出力するかどうか. Defaults to False.
 
         Raises:
@@ -47,6 +49,7 @@ class ISDBTuner:
         # チューナードライバが chardev 版か DVB 版かに関わらず、デバイスファイルはキャラクタデバイスになる
         if device_path.exists() is False or device_path.is_char_device() is False:
             raise TunerNotSupportedError(f'Invalid tuner device: {device_path}')
+        self.lnb = lnb
         self.output_recisdb_log = output_recisdb_log
 
         # 指定されたデバイスファイルに紐づくチューナーデバイスの情報を取得
@@ -270,9 +273,15 @@ class ISDBTuner:
 
         self._last_tuner_opening_failed = False
 
+        # BS・CS チャンネルのみ、設定に応じて LNB 電源を出力
+        command = ['recisdb', 'tune', '--device', str(self._device_path), '--channel', physical_channel_recisdb, '--time', str(recording_time)]
+        if self.lnb is not None and (physical_channel_recisdb.startswith('BS') or physical_channel_recisdb.startswith('CS')):
+            command.extend(['--lnb', str(self.lnb)])
+        command.extend(['-'])  # 受信データを標準出力に出力
+
         # recisdb (チューナープロセス) を起動
         process = subprocess.Popen(
-            ['recisdb', 'tune', '--device', str(self._device_path), '--channel', physical_channel_recisdb, '--time', str(recording_time), '-'],
+            command,
             stdout = subprocess.PIPE,
             stderr = subprocess.PIPE,
         )
@@ -370,9 +379,14 @@ class ISDBTuner:
             tuple[subprocess.Popen, Iterator[float]]: チューナープロセスと信号レベルを返すイテレータ
         """
 
+        # BS・CS チャンネルのみ、設定に応じて LNB 電源を出力
+        command = ['recisdb', 'checksignal', '--device', str(self._device_path), '--channel', physical_channel_recisdb]
+        if self.lnb is not None and (physical_channel_recisdb.startswith('BS') or physical_channel_recisdb.startswith('CS')):
+            command.extend(['--lnb', str(self.lnb)])
+
         # recisdb (チューナープロセス) を起動
         process = subprocess.Popen(
-            ['recisdb', 'checksignal', '--device', str(self._device_path), '--channel', physical_channel_recisdb],
+            command,
             stdout = subprocess.PIPE,
             stderr = None if self.output_recisdb_log is True else subprocess.DEVNULL,
         )
@@ -748,24 +762,32 @@ class ISDBTuner:
 
 
     @staticmethod
-    def getAvailableISDBTTuners() -> list[ISDBTuner]:
+    def getAvailableISDBTTuners(lnb: LNBVoltage = LNBVoltage.LOW, output_recisdb_log: bool = False) -> list[ISDBTuner]:
         """
         利用可能な ISDB-T チューナーのリストを取得する
         ISDB-T 専用チューナーと ISDB-T/ISDB-S 共用チューナーの両方が含まれる
+
+        Args:
+            lnb (LNBVoltage, optional): LNB 給電を行うかどうか. Defaults to LNBVoltage.LOW.
+            output_recisdb_log (bool, optional): recisdb のログを出力するかどうか. Defaults to False.
 
         Returns:
             list[ISDBTuner]: 利用可能な ISDB-T チューナーのリスト
         """
 
         # ISDB-T 専用チューナーと ISDB-T/ISDB-S 共用チューナーの両方を含む
-        return ISDBTuner.getAvailableISDBTOnlyTuners() + ISDBTuner.getAvailableMultiTuners()
+        return ISDBTuner.getAvailableISDBTOnlyTuners(lnb, output_recisdb_log) + ISDBTuner.getAvailableMultiTuners(lnb, output_recisdb_log)
 
 
     @staticmethod
-    def getAvailableISDBTOnlyTuners() -> list[ISDBTuner]:
+    def getAvailableISDBTOnlyTuners(lnb: LNBVoltage = LNBVoltage.LOW, output_recisdb_log: bool = False) -> list[ISDBTuner]:
         """
         利用可能な ISDB-T チューナーのリストを取得する
         ISDB-T 専用チューナーのみが含まれる
+
+        Args:
+            lnb (LNBVoltage, optional): LNB 給電を行うかどうか. Defaults to LNBVoltage.LOW.
+            output_recisdb_log (bool, optional): recisdb のログを出力するかどうか. Defaults to False.
 
         Returns:
             list[ISDBTuner]: 利用可能な ISDB-T 専用チューナーのリスト
@@ -778,7 +800,7 @@ class ISDBTuner:
             # キャラクタデバイスファイルかつ ISDB-T 専用チューナーであればリストに追加
             if device_path.exists() and device_path.is_char_device():
                 try:
-                    tuner = ISDBTuner(device_path)
+                    tuner = ISDBTuner(device_path, lnb=lnb, output_recisdb_log=output_recisdb_log)
                     if tuner.type == 'ISDB-T':
                         tuners.append(tuner)
                 # ISDBScanner でサポートされていないチューナー
@@ -790,24 +812,32 @@ class ISDBTuner:
 
 
     @staticmethod
-    def getAvailableISDBSTuners() -> list[ISDBTuner]:
+    def getAvailableISDBSTuners(lnb: LNBVoltage = LNBVoltage.LOW, output_recisdb_log: bool = False) -> list[ISDBTuner]:
         """
         利用可能な ISDB-S チューナーのリストを取得する
         ISDB-S 専用チューナーと ISDB-T/ISDB-S 共用チューナーの両方が含まれる
+
+        Args:
+            lnb (LNBVoltage, optional): LNB 給電を行うかどうか. Defaults to LNBVoltage.LOW.
+            output_recisdb_log (bool, optional): recisdb のログを出力するかどうか. Defaults to False.
 
         Returns:
             list[ISDBTuner]: 利用可能な ISDB-S チューナーのリスト
         """
 
         # ISDB-S 専用チューナーと ISDB-T/ISDB-S 共用チューナーの両方を含む
-        return ISDBTuner.getAvailableISDBSOnlyTuners() + ISDBTuner.getAvailableMultiTuners()
+        return ISDBTuner.getAvailableISDBSOnlyTuners(lnb, output_recisdb_log) + ISDBTuner.getAvailableMultiTuners(lnb, output_recisdb_log)
 
 
     @staticmethod
-    def getAvailableISDBSOnlyTuners() -> list[ISDBTuner]:
+    def getAvailableISDBSOnlyTuners(lnb: LNBVoltage = LNBVoltage.LOW, output_recisdb_log: bool = False) -> list[ISDBTuner]:
         """
         利用可能な ISDB-S チューナーのリストを取得する
         ISDB-S 専用チューナーのみが含まれる
+
+        Args:
+            lnb (LNBVoltage, optional): LNB 給電を行うかどうか. Defaults to LNBVoltage.LOW.
+            output_recisdb_log (bool, optional): recisdb のログを出力するかどうか. Defaults to False.
 
         Returns:
             list[ISDBTuner]: 利用可能な ISDB-S 専用チューナーのリスト
@@ -820,7 +850,7 @@ class ISDBTuner:
             # キャラクタデバイスファイルかつ ISDB-S 専用チューナーであればリストに追加
             if device_path.exists() and device_path.is_char_device():
                 try:
-                    tuner = ISDBTuner(device_path)
+                    tuner = ISDBTuner(device_path, lnb=lnb, output_recisdb_log=output_recisdb_log)
                     if tuner.type == 'ISDB-S':
                         tuners.append(tuner)
                 # ISDBScanner でサポートされていないチューナー
@@ -832,9 +862,13 @@ class ISDBTuner:
 
 
     @staticmethod
-    def getAvailableMultiTuners() -> list[ISDBTuner]:
+    def getAvailableMultiTuners(lnb: LNBVoltage = LNBVoltage.LOW, output_recisdb_log: bool = False) -> list[ISDBTuner]:
         """
         利用可能な ISDB-T/ISDB-S 共用チューナーのリストを取得する
+
+        Args:
+            lnb (LNBVoltage, optional): LNB 給電を行うかどうか. Defaults to LNBVoltage.LOW.
+            output_recisdb_log (bool, optional): recisdb のログを出力するかどうか. Defaults to False.
 
         Returns:
             list[ISDBTuner]: 利用可能な ISDB-T/ISDB-S 共用チューナーのリスト
@@ -847,7 +881,7 @@ class ISDBTuner:
             # キャラクタデバイスファイルかつ ISDB-T/ISDB-S 共用チューナーであればリストに追加
             if device_path.exists() and device_path.is_char_device():
                 try:
-                    tuner = ISDBTuner(device_path)
+                    tuner = ISDBTuner(device_path, lnb=lnb, output_recisdb_log=output_recisdb_log)
                     if tuner.type == 'ISDB-T/ISDB-S':
                         tuners.append(tuner)
                 # ISDBScanner でサポートされていないチューナー

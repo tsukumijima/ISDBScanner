@@ -16,6 +16,7 @@ from rich.style import Style
 from isdb_scanner import __version__
 from isdb_scanner.analyzer import TransportStreamAnalyzeError
 from isdb_scanner.analyzer import TransportStreamAnalyzer
+from isdb_scanner.constants import LNBVoltage
 from isdb_scanner.constants import TransportStreamInfo
 from isdb_scanner.formatter import EDCBChSet4TxtFormatter
 from isdb_scanner.formatter import EDCBChSet5TxtFormatter
@@ -42,6 +43,7 @@ def main(
     exclude_pay_tv: bool = typer.Option(False, help='Exclude pay-TV channels from scan results and include only free-to-air terrestrial and BS channels.'),
     output_recisdb_log: bool = typer.Option(False, help='Output recisdb log to stderr.'),
     list_tuners: bool = typer.Option(False, help='List available ISDB-T/ISDB-S tuners and exit.'),
+    lnb: LNBVoltage = typer.Option(LNBVoltage.LOW, help='LNB voltage for satellite antenna power supply. If none, the LNB voltage is assumed unset.'),
     version: bool = typer.Option(None, '--version', callback=version, is_eager=True, help='Show version information.'),
 ):
 
@@ -121,7 +123,7 @@ def main(
 
         # チューナーを取得
         print(Rule(characters='-', style=Style(color='#E33157')))
-        isdbt_tuners = ISDBTuner.getAvailableISDBTTuners()
+        isdbt_tuners = ISDBTuner.getAvailableISDBTTuners(lnb=lnb, output_recisdb_log=output_recisdb_log)
         if len(isdbt_tuners) == 0:
             print('[red]No ISDB-T tuner found.[/red]')
             print('[red]Please connect an ISDB-T tuner and try again.[/red]')
@@ -150,7 +152,6 @@ def main(
                         # 録画時間: 2.25 秒 (地上波の SI 送出間隔は最大 2 秒周期)
                         start_time = time.time()
                         try:
-                            tuner.output_recisdb_log = output_recisdb_log
                             ts_stream_data = tuner.tune(channel.physical_channel_recisdb, recording_time=2.25)
                         finally:
                             print(f'Tune Time: {time.time() - start_time:.2f} seconds')
@@ -243,7 +244,7 @@ def main(
 
         # チューナーを取得
         print(Rule(characters='-', style=Style(color='#E33157')))
-        isdbs_tuners = ISDBTuner.getAvailableISDBSTuners()
+        isdbs_tuners = ISDBTuner.getAvailableISDBSTuners(lnb=lnb, output_recisdb_log=output_recisdb_log)
         if len(isdbs_tuners) == 0:
             print('[red]No ISDB-S tuner found.[/red]')
             print('[red]Please connect an ISDB-S tuner and try again.[/red]')
@@ -271,7 +272,6 @@ def main(
                     # 録画時間: 11 秒 (BS・CS110 の SI 送出間隔は最大 10 秒周期)
                     start_time = time.time()
                     try:
-                        tuner.output_recisdb_log = output_recisdb_log
                         ts_stream_data = tuner.tune(channel.physical_channel_recisdb, recording_time=11)
                     finally:
                         print(f'Tune Time: {time.time() - start_time:.2f} seconds')
