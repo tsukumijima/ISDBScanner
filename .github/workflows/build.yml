@@ -34,7 +34,7 @@ jobs:
 
       - name: Build with PyInstaller
         run: |
-          poetry run pyinstaller --onefile --name=isdb-scanner isdb_scanner/__main__.py
+          poetry run pyinstaller --onefile --collect-submodules shellingham --name=isdb-scanner isdb_scanner/__main__.py
 
       - name: Upload Executable as Artifact
         uses: actions/upload-artifact@v3
@@ -104,7 +104,7 @@ jobs:
       - name: Build with PyInstaller
         run: |
           docker run --rm -i -v $(pwd):/work -w /work arm64v8/ubuntu:build bash -c \
-            'poetry install && poetry run pyinstaller --onefile --name=isdb-scanner-arm isdb_scanner/__main__.py'
+            'poetry install && poetry run pyinstaller --onefile --collect-submodules shellingham --name=isdb-scanner-arm isdb_scanner/__main__.py'
 
       - name: Upload Executable as Artifact
         uses: actions/upload-artifact@v3
