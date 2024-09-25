@@ -216,10 +216,15 @@ sudo chmod +x /usr/local/bin/isdb-scanner
 
 ## 使い方
 
-![Screenshot](https://github.com/tsukumijima/ISDBScanner/assets/39271166/4c2caa09-4e0f-4bf8-a393-795562c36c9e)
+![Screenshot](https://github.com/user-attachments/assets/ff759d35-b902-47f6-aeb4-18e5949bee30)
 
 ISDBScanner は、引数で指定されたディレクトリ (デフォルト: `./scanned/`) 以下に複数のファイルを出力します。  
 出力される各ファイルのフォーマットは [対応出力フォーマット](#対応出力フォーマット) を参照してください。
+
+> [!TIP]
+> ISDBScanner v1.2.0 以降では、`--lnb` オプションを指定すると、衛星放送受信時にチューナーからアンテナに給電できます（動作未確認）。  
+> `--lnb 11v` と `--lnb 15v` の両方を指定できますが、px4_drv 対応チューナーには `--lnb 15v` のみ指定できます。  
+> 明示的に LNB 給電を無効化するには、`--lnb low` を指定します。何も指定されなかったときは LNB 給電を行いません。
 
 ### PC に接続されている利用可能なチューナーのリストを表示
 

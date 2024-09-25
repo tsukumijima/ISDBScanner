@@ -43,7 +43,7 @@ def main(
     exclude_pay_tv: bool = typer.Option(False, help='Exclude pay-TV channels from scan results and include only free-to-air terrestrial and BS channels.'),
     output_recisdb_log: bool = typer.Option(False, help='Output recisdb log to stderr.'),
     list_tuners: bool = typer.Option(False, help='List available ISDB-T/ISDB-S tuners and exit.'),
-    lnb: LNBVoltage = typer.Option(LNBVoltage.LOW, help='LNB voltage for satellite antenna power supply. If none, the LNB voltage is assumed unset.'),
+    lnb: LNBVoltage = typer.Option(LNBVoltage.LOW, help='LNB voltage for satellite antenna power supply.'),
     version: bool = typer.Option(None, '--version', callback=version, is_eager=True, help='Show version information.'),
 ):
 
