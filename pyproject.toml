@@ -9,16 +9,16 @@ readme = "Readme.md"
 [tool.poetry.dependencies]
 python = ">=3.11,<3.13"
 ariblib = {url = "https://github.com/tsukumijima/ariblib/releases/download/v0.1.4/ariblib-0.1.4-py3-none-any.whl"}
-devtools = "^0.11.0"
-libusb-package = "^1.0.26.2"
-pydantic = "^2.1.1"
-pyusb = "^1.2.1"
-ruamel-yaml = "^0.17.32"
-typer = {extras = ["all"], version = "^0.9.0"}
-typing-extensions = "^4.7.1"
+devtools = ">=0.12.0"
+libusb-package = ">=1.0.26"
+pydantic = ">=2.1.0"
+pyusb = ">=1.2.1"
+ruamel-yaml = ">=0.17.0"
+typer = ">=0.9.0"
+typing-extensions = ">=4.7.1"
 
 [tool.poetry.group.dev.dependencies]
-pyinstaller = "^5.13.2"
+pyinstaller = ">=5.13.2"
 
 [build-system]
 requires = ["poetry-core"]
