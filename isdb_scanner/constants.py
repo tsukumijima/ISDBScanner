@@ -1,17 +1,16 @@
-
 from __future__ import annotations
 
 from enum import StrEnum
 from pathlib import Path
-from pydantic import BaseModel
-from pydantic import computed_field
-from pydantic import RootModel
 from typing import Literal
+
+from pydantic import BaseModel, RootModel, computed_field
 
 
 # Pydantic モデルの定義
 
 BroadcastType = Literal['Terrestrial', 'BS', 'CS1', 'CS2']
+
 
 # Typer が Literal をサポートしていないため、StrEnum を使用する
 # ref: https://github.com/fastapi/typer/issues/76
@@ -20,13 +19,16 @@ class LNBVoltage(StrEnum):
     _15V = '15v'
     LOW = 'low'
 
+
 class ServiceInfo(BaseModel):
+    # fmt: off
     channel_number: str = 'Unknown'  # 3桁チャンネル番号 (BS/CS ではサービス ID と同一)
     service_id: int = -1             # サービス ID
     service_type: int = -1           # サービス種別 (1: 映像サービス, 161: 臨時映像サービス, 192: データサービス/ワンセグ放送)
     service_name: str = 'Unknown'    # サービス名
     is_free: bool = True             # 無料放送かどうか
     is_oneseg: bool = False          # ワンセグ放送かどうか
+    # fmt: on
 
     def __str__(self) -> str:
         message = f'Ch: {self.channel_number} | {self.service_name} '
@@ -52,12 +54,14 @@ class ServiceInfo(BaseModel):
         ref: https://github.com/xtne6f/EDCB/blob/work-plus-s-230823/BonCtrl/ChSetUtil.h#L66-L74
         """
         return (
-            self.service_type == 0x01 or  # デジタルTVサービス
-            self.service_type == 0xA5 or  # プロモーション映像サービス
-            self.service_type == 0xAD     # 超高精細度4K専用TVサービス
+            self.service_type == 0x01  # デジタルTVサービス
+            or self.service_type == 0xA5  # プロモーション映像サービス
+            or self.service_type == 0xAD  # 超高精細度4K専用TVサービス
         )
 
+
 class TransportStreamInfo(BaseModel):
+    # fmt: off
     physical_channel: str = 'Unknown'           # 物理チャンネル (ex: "T13", "BS23/TS3", "ND04")
     transport_stream_id: int = -1               # トランスポートストリーム ID
     network_id: int = -1                        # ネットワーク ID
@@ -67,6 +71,7 @@ class TransportStreamInfo(BaseModel):
     satellite_transponder: int | None = None    # BS/CS: トランスポンダ番号
     satellite_slot_number: int | None = None    # BS: いわゆるスロット番号 (厳密には相対 TS 番号)
     services: list[ServiceInfo] = []
+    # fmt: on
 
     @computed_field
     @property
@@ -96,7 +101,7 @@ class TransportStreamInfo(BaseModel):
 
     @computed_field
     @property
-    def physical_channel_recpt1(self) -> str:   # recpt1 が受け付けるフォーマットの物理チャンネル
+    def physical_channel_recpt1(self) -> str:  # recpt1 が受け付けるフォーマットの物理チャンネル
         if self.broadcast_type == 'Terrestrial':
             return self.physical_channel.replace('T', '')  # T13 -> 13
         elif self.broadcast_type == 'BS':
@@ -117,8 +122,10 @@ class TransportStreamInfo(BaseModel):
             message += f'/ Frequency: {self.satellite_frequency:.5f} GHz | {self.network_name}'
         return message.rstrip()
 
+
 class TransportStreamInfoList(RootModel[list[TransportStreamInfo]]):
     root: list[TransportStreamInfo]
+
 
 class DVBDeviceInfo(BaseModel):
     device_path: Path

@@ -1,15 +1,14 @@
-
 import copy
 import csv
 import json
 from io import StringIO
 from pathlib import Path
+from typing import Any, TypedDict, cast
+
 from ruamel.yaml import YAML
-from typing import Any, cast, TypedDict
 from typing_extensions import NotRequired
 
-from isdb_scanner.constants import TransportStreamInfo
-from isdb_scanner.constants import TransportStreamInfoList
+from isdb_scanner.constants import TransportStreamInfo, TransportStreamInfoList
 from isdb_scanner.tuner import ISDBTuner
 
 
@@ -18,8 +17,8 @@ class BaseFormatter:
     フォーマッターの基底クラス
     """
 
-
-    def __init__(self,
+    def __init__(
+        self,
         save_file_path: Path,
         terrestrial_ts_infos: list[TransportStreamInfo],
         bs_ts_infos: list[TransportStreamInfo],
@@ -53,7 +52,6 @@ class BaseFormatter:
                 # 無料とはいえわざわざ通販チャンネルを見る人がいるとも思えないので全てのサービスを除外する
                 cs_ts_info.services = []
 
-
     def format(self) -> str:
         """
         フォーマットを実行する (実装はサブクラスで行う)
@@ -63,7 +61,6 @@ class BaseFormatter:
         """
 
         raise NotImplementedError
-
 
     def save(self) -> str:
         """
@@ -85,7 +82,6 @@ class JSONFormatter(BaseFormatter):
     スキャン解析結果である TS 情報を JSON データとして保存するフォーマッター
     """
 
-
     def format(self) -> str:
         """
         JSON データとしてフォーマットする
@@ -98,10 +94,15 @@ class JSONFormatter(BaseFormatter):
         # (有料放送を除外する場合は、この時点ですでに各 TS 情報のサービス情報から有料放送が除外されている)
         ## 正確には有料放送の TS に無料独立データ放送が含まれる場合もあるので (WOWOW など) 、それらも除外してから判定する
         ## 独立データ放送の service_type は 0xC0 なので、それ以外のサービスが空かどうかで判定する
-        bs_ts_infos = list(filter((
-            lambda ts_info: (self._exclude_pay_tv is False) or
-            (len([service for service in ts_info.services if service.service_type != 0xC0]) > 0)
-        ), copy.deepcopy(self._bs_ts_infos)))
+        bs_ts_infos = list(
+            filter(
+                (
+                    lambda ts_info: (self._exclude_pay_tv is False)
+                    or (len([service for service in ts_info.services if service.service_type != 0xC0]) > 0)
+                ),
+                copy.deepcopy(self._bs_ts_infos),
+            )
+        )
 
         channels_dict = {
             'Terrestrial': TransportStreamInfoList(root=self._terrestrial_ts_infos).model_dump(mode='json'),
@@ -124,7 +125,6 @@ class EDCBChSet4TxtFormatter(BaseFormatter):
     このフォーマッターで生成される ChSet4.txt は BonDriver_mirakc / BonDriver_Mirakurun 専用で、
     他 BonDriver では物理チャンネルやチューナー空間の対応を別途変更する必要がある
     """
-
 
     def format(self) -> str:
         """
@@ -191,20 +191,22 @@ class EDCBChSet4TxtFormatter(BaseFormatter):
                     partial_flag = 1 if service.is_oneseg else 0
                     use_view_flag = 1 if service.isVideoServiceType() else 0
                     remocon_id = ts_info.remote_control_key_id if ts_info.remote_control_key_id is not None else 0
-                    writer.writerow([
-                        ch_name,
-                        service.service_name,
-                        ts_info.network_name,
-                        space,
-                        ch,
-                        ts_info.network_id,
-                        ts_info.transport_stream_id,
-                        service.service_id,
-                        service.service_type,
-                        partial_flag,
-                        use_view_flag,
-                        remocon_id,
-                    ])
+                    writer.writerow(
+                        [
+                            ch_name,
+                            service.service_name,
+                            ts_info.network_name,
+                            space,
+                            ch,
+                            ts_info.network_id,
+                            ts_info.transport_stream_id,
+                            service.service_id,
+                            service.service_type,
+                            partial_flag,
+                            use_view_flag,
+                            remocon_id,
+                        ]
+                    )
                 ch += 1  # 0 スタートなので処理完了後にインクリメントする
 
         # StringIO の先頭にシークする
@@ -220,7 +222,6 @@ class EDCBChSet5TxtFormatter(BaseFormatter):
     スキャン解析結果である TS 情報を EDCB の ChSet5.txt (EDCB 全体で受信可能なチャンネル設定データ) として保存するフォーマッター
     各チューナー (BonDriver) に依存する情報は ChSet4.txt の方に書き込まれる
     """
-
 
     def format(self) -> str:
         """
@@ -260,17 +261,19 @@ class EDCBChSet5TxtFormatter(BaseFormatter):
                 partial_flag = 1 if service.is_oneseg else 0
                 epg_cap_flag = 1 if service.isVideoServiceType() else 0
                 search_flag = 1 if service.isVideoServiceType() else 0
-                writer.writerow([
-                    service.service_name,
-                    ts_info.network_name,
-                    ts_info.network_id,
-                    ts_info.transport_stream_id,
-                    service.service_id,
-                    service.service_type,
-                    partial_flag,
-                    epg_cap_flag,
-                    search_flag,
-                ])
+                writer.writerow(
+                    [
+                        service.service_name,
+                        ts_info.network_name,
+                        ts_info.network_id,
+                        ts_info.transport_stream_id,
+                        service.service_id,
+                        service.service_type,
+                        partial_flag,
+                        epg_cap_flag,
+                        search_flag,
+                    ]
+                )
 
         # StringIO の先頭にシークする
         string_io.seek(0)
@@ -292,8 +295,8 @@ class MirakurunChannelsYmlFormatter(BaseFormatter):
     スキャン解析結果である TS 情報を Mirakurun のチャンネル設定ファイルとして保存するフォーマッター
     """
 
-
-    def __init__(self,
+    def __init__(
+        self,
         save_file_path: Path,
         terrestrial_ts_infos: list[TransportStreamInfo],
         bs_ts_infos: list[TransportStreamInfo],
@@ -313,7 +316,6 @@ class MirakurunChannelsYmlFormatter(BaseFormatter):
 
         self._recpt1_compatible = recpt1_compatible
         super().__init__(save_file_path, terrestrial_ts_infos, bs_ts_infos, cs_ts_infos, exclude_pay_tv)
-
 
     def format(self) -> str:
         """
@@ -386,8 +388,8 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
     取得したチューナー情報を Mirakurun のチューナー設定ファイルとして保存するフォーマッター
     """
 
-
-    def __init__(self,
+    def __init__(
+        self,
         save_file_path: Path,
         isdbt_tuners: list[ISDBTuner],
         isdbs_tuners: list[ISDBTuner],
@@ -408,7 +410,6 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
         self._isdbs_tuners = isdbs_tuners
         self._multi_tuners = multi_tuners
         self._recpt1_compatible = recpt1_compatible
-
 
     def format(self) -> str:
         """
@@ -492,6 +493,7 @@ class MirakcChannel(TypedDict):
     channel: str
     disabled: NotRequired[bool]
 
+
 class MirakcTuner(TypedDict):
     name: str
     types: list[str]
@@ -504,8 +506,8 @@ class MirakcConfigYmlFormatter(BaseFormatter):
     取得したチューナー情報とスキャン解析結果である TS 情報を mirakc の設定ファイルとして保存するフォーマッター
     """
 
-
-    def __init__(self,
+    def __init__(
+        self,
         save_file_path: Path,
         isdbt_tuners: list[ISDBTuner],
         isdbs_tuners: list[ISDBTuner],
@@ -551,7 +553,6 @@ class MirakcConfigYmlFormatter(BaseFormatter):
         assert 'channels' in mirakc_config_template and type(mirakc_config_template['channels']) is list
         assert 'tuners' in mirakc_config_template and type(mirakc_config_template['tuners']) is list
         self._mirakc_config_template = mirakc_config_template
-
 
     def format(self) -> str:
         """

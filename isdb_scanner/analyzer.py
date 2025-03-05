@@ -1,3 +1,6 @@
+from collections import defaultdict
+from io import BytesIO
+from typing import Any
 
 from ariblib import TransportStreamFile
 from ariblib.aribstr import AribString
@@ -12,12 +15,8 @@ from ariblib.sections import (
     ActualNetworkNetworkInformationSection,
     ServiceDescriptionSection,
 )
-from collections import defaultdict
-from io import BytesIO
-from typing import Any
 
-from isdb_scanner.constants import ServiceInfo
-from isdb_scanner.constants import TransportStreamInfo
+from isdb_scanner.constants import ServiceInfo, TransportStreamInfo
 
 
 class TransportStreamAnalyzer(TransportStreamFile):
@@ -25,7 +24,6 @@ class TransportStreamAnalyzer(TransportStreamFile):
     ISDB-T/ISDB-S (地上波・BS・CS110) の TS ストリームに含まれる PSI/SI を解析するクラス
     ariblib の TransportStreamFile を継承しているが、メモリ上に格納された TS ストリームを直接解析できる
     """
-
 
     def __init__(self, ts_stream_data: bytearray, tuned_physical_channel: str, chunk_size: int = 10000):
         """
@@ -44,16 +42,16 @@ class TransportStreamAnalyzer(TransportStreamFile):
         self._bytes_io = BytesIO(ts_stream_data)
         self._callbacks: Any = dict()
 
-
     # TransportStreamFile は BufferedReader を継承しているが、BufferedReader ではメモリ上のバッファを直接操作できないため、
     # BufferedReader から継承しているメソッドのうち、TransportStreamFile の動作に必要なメソッドだけをオーバーライドしている
     def read(self, size: int | None = -1) -> bytes:
         return self._bytes_io.read(size)
+
     def seek(self, offset: int, whence: int = 0) -> int:
         return self._bytes_io.seek(offset, whence)
+
     def tell(self) -> int:
         return self._bytes_io.tell()
-
 
     def analyze(self) -> list[TransportStreamInfo]:
         """
@@ -69,7 +67,6 @@ class TransportStreamAnalyzer(TransportStreamFile):
         ts_infos: dict[int, TransportStreamInfo] = {}
 
         try:
-
             # NIT (自ネットワーク) からトランスポートストリームの情報を取得
             # 自ネットワーク: 選局中の TS が所属するものと同一のネットワーク
             self.seek(0)
@@ -112,7 +109,7 @@ class TransportStreamAnalyzer(TransportStreamFile):
                             for partial_service in partial_reception.services:
                                 # すでに同じ service_id のサービスが登録されている場合は既存の情報を上書きする
                                 if partial_service.service_id in [sv.service_id for sv in ts_info.services]:
-                                    service_info = [sv for sv in ts_info.services if sv.service_id == partial_service.service_id][0]
+                                    service_info = next(sv for sv in ts_info.services if sv.service_id == partial_service.service_id)
                                 else:
                                     service_info = ServiceInfo()
                                     service_info.service_id = int(partial_service.service_id)
@@ -168,7 +165,7 @@ class TransportStreamAnalyzer(TransportStreamFile):
             ## 地上波では当然ながら PSI/SI からは受信中の物理チャンネルを判定できないので、ここで別途セットする
             if self.tuned_physical_channel.startswith('T'):
                 assert len(ts_infos) == 1
-                ts_infos[list(ts_infos.keys())[0]].physical_channel = self.tuned_physical_channel
+                ts_infos[next(iter(ts_infos.keys()))].physical_channel = self.tuned_physical_channel
             # 地上波以外では、TS 情報を物理チャンネル順に並び替える
             else:
                 ts_infos = dict(sorted(ts_infos.items(), key=lambda x: x[1].physical_channel))
@@ -184,7 +181,7 @@ class TransportStreamAnalyzer(TransportStreamFile):
                     # サービスの情報を格納
                     # すでに同じ service_id のサービスが登録されている場合は既存の情報を上書きする
                     if service.service_id in [sv.service_id for sv in ts_info.services]:
-                        service_info = [sv for sv in ts_info.services if sv.service_id == service.service_id][0]
+                        service_info = next(sv for sv in ts_info.services if sv.service_id == service.service_id)
                     else:
                         service_info = ServiceInfo()
                         service_info.service_id = int(service.service_id)
@@ -225,7 +222,6 @@ class TransportStreamAnalyzer(TransportStreamFile):
         # list に変換して返す
         return list(ts_infos.values())
 
-
     @staticmethod
     def __fullWidthToHalfWith(string: str | AribString) -> str:
         """
@@ -252,7 +248,9 @@ class TransportStreamAnalyzer(TransportStreamFile):
 
         # 全角英数を半角英数に置換
         # ref: https://github.com/ikegami-yukino/jaconv/blob/master/jaconv/conv_table.py
-        zenkaku_table = '０１２３４５６７８９ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ'
+        zenkaku_table = (
+            '０１２３４５６７８９ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ'
+        )
         hankaku_table = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
         merged_table = dict(zip(list(zenkaku_table), list(hankaku_table)))
 
@@ -260,24 +258,27 @@ class TransportStreamAnalyzer(TransportStreamFile):
         symbol_zenkaku_table = '＂＃＄％＆＇（）＋，－．／：；＜＝＞［＼］＾＿｀｛｜｝　'
         symbol_hankaku_table = '"#$%&\'()+,-./:;<=>[\\]^_`{|} '
         merged_table.update(zip(list(symbol_zenkaku_table), list(symbol_hankaku_table)))
-        merged_table.update({
-            # 一部の半角記号を全角に置換
-            # 主に見栄え的な問題（全角の方が字面が良い）
-            '!': '！',
-            '?': '？',
-            '*': '＊',
-            '~': '～',
-            '@': '＠',
-            # シャープ → ハッシュ
-            '♯': '#',
-            # 波ダッシュ → 全角チルダ
-            ## EDCB は ～ を全角チルダとして扱っているため、ISDBScanner でもそのように統一する
-            '〜': '～',
-        })
+        merged_table.update(
+            {
+                # 一部の半角記号を全角に置換
+                # 主に見栄え的な問題（全角の方が字面が良い）
+                '!': '！',
+                '?': '？',
+                '*': '＊',
+                '~': '～',
+                '@': '＠',
+                # シャープ → ハッシュ
+                '♯': '#',
+                # 波ダッシュ → 全角チルダ
+                ## EDCB は ～ を全角チルダとして扱っているため、ISDBScanner でもそのように統一する
+                '〜': '～',
+            }
+        )
 
         return string.translate(str.maketrans(merged_table))  # type: ignore
 
 
 class TransportStreamAnalyzeError(Exception):
-    """ 何らかの問題でトランスポートストリームの解析に失敗したときに送出される例外 """
+    """何らかの問題でトランスポートストリームの解析に失敗したときに送出される例外"""
+
     pass

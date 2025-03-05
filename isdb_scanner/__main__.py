@@ -1,33 +1,26 @@
-
 import subprocess
 import sys
 import time
-import typer
 from pathlib import Path
+
+import typer
 from rich import print
-from rich.progress import BarColumn
-from rich.progress import Progress
-from rich.progress import TaskProgressColumn
-from rich.progress import TextColumn
-from rich.progress import TimeRemainingColumn
+from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn, TimeRemainingColumn
 from rich.rule import Rule
 from rich.style import Style
 
 from isdb_scanner import __version__
-from isdb_scanner.analyzer import TransportStreamAnalyzeError
-from isdb_scanner.analyzer import TransportStreamAnalyzer
-from isdb_scanner.constants import LNBVoltage
-from isdb_scanner.constants import TransportStreamInfo
-from isdb_scanner.formatter import EDCBChSet4TxtFormatter
-from isdb_scanner.formatter import EDCBChSet5TxtFormatter
-from isdb_scanner.formatter import JSONFormatter
-from isdb_scanner.formatter import MirakcConfigYmlFormatter
-from isdb_scanner.formatter import MirakurunChannelsYmlFormatter
-from isdb_scanner.formatter import MirakurunTunersYmlFormatter
-from isdb_scanner.tuner import ISDBTuner
-from isdb_scanner.tuner import TunerOpeningError
-from isdb_scanner.tuner import TunerOutputError
-from isdb_scanner.tuner import TunerTuningError
+from isdb_scanner.analyzer import TransportStreamAnalyzeError, TransportStreamAnalyzer
+from isdb_scanner.constants import LNBVoltage, TransportStreamInfo
+from isdb_scanner.formatter import (
+    EDCBChSet4TxtFormatter,
+    EDCBChSet5TxtFormatter,
+    JSONFormatter,
+    MirakcConfigYmlFormatter,
+    MirakurunChannelsYmlFormatter,
+    MirakurunTunersYmlFormatter,
+)
+from isdb_scanner.tuner import ISDBTuner, TunerOpeningError, TunerOutputError, TunerTuningError
 
 
 def version(value: bool):
@@ -35,24 +28,32 @@ def version(value: bool):
         typer.echo(f'ISDBScanner version {__version__}')
         raise typer.Exit()
 
+
 app = typer.Typer()
 
-@app.command(help='ISDBScanner: Scans Japanese TV broadcast channels (ISDB-T/ISDB-S) and outputs results in various formats (depends on recisdb)')
+
+@app.command(
+    help='ISDBScanner: Scans Japanese TV broadcast channels (ISDB-T/ISDB-S) and outputs results in various formats (depends on recisdb)'
+)
 def main(
     output: Path = typer.Argument(Path('scanned/'), help='Output scan results to the specified directory.'),
-    exclude_pay_tv: bool = typer.Option(False, help='Exclude pay-TV channels from scan results and include only free-to-air terrestrial and BS channels.'),
+    exclude_pay_tv: bool = typer.Option(
+        False,
+        help='Exclude pay-TV channels from scan results and include only free-to-air terrestrial and BS channels.',
+    ),
     output_recisdb_log: bool = typer.Option(False, help='Output recisdb log to stderr.'),
     list_tuners: bool = typer.Option(False, help='List available ISDB-T/ISDB-S tuners and exit.'),
     lnb: LNBVoltage = typer.Option(LNBVoltage.LOW, help='LNB voltage for satellite antenna power supply.'),
     version: bool = typer.Option(None, '--version', callback=version, is_eager=True, help='Show version information.'),
 ):
-
-    print(Rule(
-        title = f'ISDBScanner version {__version__}',
-        characters='=',
-        style = Style(color='#E33157'),
-        align = 'center',
-    ))
+    print(
+        Rule(
+            title=f'ISDBScanner version {__version__}',
+            characters='=',
+            style=Style(color='#E33157'),
+            align='center',
+        )
+    )
 
     # recisdb の実行ファイルがインストールされているか確認
     if subprocess.run(['/bin/bash', '-c', 'type recisdb'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
@@ -108,15 +109,14 @@ def main(
 
     # プログレスバーを開始
     progress = Progress(
-        TextColumn("[progress.description]{task.description}"),
+        TextColumn('[progress.description]{task.description}'),
         BarColumn(bar_width=9999),
         TaskProgressColumn(),
         TimeRemainingColumn(),
         transient=True,
     )
-    task = progress.add_task("[bright_red]Scanning...", total=total_channel_count)
+    task = progress.add_task('[bright_red]Scanning...', total=total_channel_count)
     with progress:
-
         # ***** 地上波のチャンネルスキャン *****
 
         print('Scanning ISDB-T (Terrestrial) channels...')
@@ -195,14 +195,15 @@ def main(
 
         # 同一 TSID を持つ物理チャンネルのうち、信号レベルが最も高い物理チャンネルのみを残す
         for ts_infos in tsid_grouped_physical_channels.values():
-
             # 同一 TSID を持つ物理チャンネルが1つだけ (正常) の場合は何もしない
             if len(ts_infos) == 1:
                 continue
 
             print(Rule(characters='-', style=Style(color='#E33157')))
-            print(f'[yellow]{ts_infos[0].network_name} (TSID: {ts_infos[0].transport_stream_id}) '
-                   'was detected redundantly across multiple physical channels.[/yellow]')
+            print(
+                f'[yellow]{ts_infos[0].network_name} (TSID: {ts_infos[0].transport_stream_id}) '
+                'was detected redundantly across multiple physical channels.[/yellow]'
+            )
             print('[yellow]Outputs only the physical channel with the highest signal level...[/yellow]')
 
             # それぞれの物理チャンネルの信号レベルを計測
@@ -231,8 +232,10 @@ def main(
                 if signal_level != max_signal_level:
                     tr_ts_infos.remove(ts_info)
                 else:
-                    print(f'[green]Selected Physical Channel: {ts_info.physical_channel.replace("T", "")}ch | '
-                          f'Signal Level: {signal_level:.2f} dB[/green]')
+                    print(
+                        f'[green]Selected Physical Channel: {ts_info.physical_channel.replace("T", "")}ch | '
+                        f'Signal Level: {signal_level:.2f} dB[/green]'
+                    )
 
         # 物理チャンネル順にソート
         tr_ts_infos = sorted(tr_ts_infos, key=lambda x: x.physical_channel)
@@ -326,54 +329,90 @@ def main(
     ## JSON のみ常に取得した全チャンネルを出力
     JSONFormatter(
         output / 'Channels.json',
-        tr_ts_infos, bs_ts_infos, cs_ts_infos,
-        exclude_pay_tv = False).save()
+        tr_ts_infos,
+        bs_ts_infos,
+        cs_ts_infos,
+        exclude_pay_tv=False,
+    ).save()
     EDCBChSet4TxtFormatter(
         output / 'EDCB-Wine/BonDriver_mirakc(BonDriver_mirakc).ChSet4.txt',
-        tr_ts_infos, bs_ts_infos, cs_ts_infos,
-        exclude_pay_tv).save()
+        tr_ts_infos,
+        bs_ts_infos,
+        cs_ts_infos,
+        exclude_pay_tv,
+    ).save()
     EDCBChSet4TxtFormatter(
         output / 'EDCB-Wine/BonDriver_mirakc_T(BonDriver_mirakc).ChSet4.txt',
-        tr_ts_infos, [], [],
-        exclude_pay_tv).save()
+        tr_ts_infos,
+        [],
+        [],
+        exclude_pay_tv,
+    ).save()
     EDCBChSet4TxtFormatter(
         output / 'EDCB-Wine/BonDriver_mirakc_S(BonDriver_mirakc).ChSet4.txt',
-        [], bs_ts_infos, cs_ts_infos,
-        exclude_pay_tv).save()
+        [],
+        bs_ts_infos,
+        cs_ts_infos,
+        exclude_pay_tv,
+    ).save()
     EDCBChSet5TxtFormatter(
         output / 'EDCB-Wine/ChSet5.txt',
-        tr_ts_infos, bs_ts_infos, cs_ts_infos,
-        exclude_pay_tv).save()
+        tr_ts_infos,
+        bs_ts_infos,
+        cs_ts_infos,
+        exclude_pay_tv,
+    ).save()
     MirakurunChannelsYmlFormatter(
         output / 'Mirakurun/channels.yml',
-        tr_ts_infos, bs_ts_infos, cs_ts_infos,
-        exclude_pay_tv).save()
+        tr_ts_infos,
+        bs_ts_infos,
+        cs_ts_infos,
+        exclude_pay_tv,
+    ).save()
     MirakurunChannelsYmlFormatter(
         output / 'Mirakurun/channels_recpt1.yml',
-        tr_ts_infos, bs_ts_infos, cs_ts_infos,
-        exclude_pay_tv, recpt1_compatible = True).save()
+        tr_ts_infos,
+        bs_ts_infos,
+        cs_ts_infos,
+        exclude_pay_tv,
+        recpt1_compatible=True,
+    ).save()
     MirakurunTunersYmlFormatter(
-        output / 'Mirakurun/tuners.yml',
-        available_isdbt_tuners, available_isdbs_tuners, available_multi_tuners).save()
+        output / 'Mirakurun/tuners.yml', available_isdbt_tuners, available_isdbs_tuners, available_multi_tuners
+    ).save()
     MirakurunTunersYmlFormatter(
         output / 'Mirakurun/tuners_recpt1.yml',
-        available_isdbt_tuners, available_isdbs_tuners, available_multi_tuners,
-        recpt1_compatible = True).save()
+        available_isdbt_tuners,
+        available_isdbs_tuners,
+        available_multi_tuners,
+        recpt1_compatible=True,
+    ).save()
     MirakcConfigYmlFormatter(
         output / 'mirakc/config.yml',
-        available_isdbt_tuners, available_isdbs_tuners, available_multi_tuners,
-        tr_ts_infos, bs_ts_infos, cs_ts_infos,
-        exclude_pay_tv).save()
+        available_isdbt_tuners,
+        available_isdbs_tuners,
+        available_multi_tuners,
+        tr_ts_infos,
+        bs_ts_infos,
+        cs_ts_infos,
+        exclude_pay_tv,
+    ).save()
     MirakcConfigYmlFormatter(
         output / 'mirakc/config_recpt1.yml',
-        available_isdbt_tuners, available_isdbs_tuners, available_multi_tuners,
-        tr_ts_infos, bs_ts_infos, cs_ts_infos,
-        exclude_pay_tv, recpt1_compatible = True).save()
+        available_isdbt_tuners,
+        available_isdbs_tuners,
+        available_multi_tuners,
+        tr_ts_infos,
+        bs_ts_infos,
+        cs_ts_infos,
+        exclude_pay_tv,
+        recpt1_compatible=True,
+    ).save()
 
     print(Rule(characters='=', style=Style(color='#E33157')))
     print(f'Finished in {time.time() - scan_start_time:.2f} seconds.')
     print(Rule(characters='=', style=Style(color='#E33157')))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app()
