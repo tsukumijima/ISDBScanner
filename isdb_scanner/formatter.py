@@ -361,14 +361,17 @@ class MirakurunChannelsYmlFormatter(BaseFormatter):
             else:
                 # recisdb 互換の物理チャンネル指定フォーマット
                 mirakurun_channel = ts_info.physical_channel_recisdb
-                ## BS のみ追加の引数として --tsid (BS チャンネルの TSID) を指定し、当該トランスポンダで送出中の TS を明示的に TSID で選局する
-                ## 実際に発行されるチューナーコマンドは --channel BS23_2 --tsid 18803 のようになる
-                ## (--tsid 指定時は物理チャンネル表記に含まれる相対 TS 番号は無視され、常に物理 BS-23ch 内で送出中の TSID が 18803 の TS が選局される)
-                ## 地上波や CS にはスロットや相対 TS 番号の概念がないため、TSID を指定する必要はない
                 if ts_info.broadcast_type == 'BS':
+                    # BS のみ追加の引数として --tsid (BS チャンネルの TSID) を指定し、当該トランスポンダで送出中の TS を明示的に TSID で選局する
+                    ## 実際に発行されるチューナーコマンドは --channel BS23_2 --tsid 18803 のようになる
+                    ## (--tsid 指定時は物理チャンネル表記に含まれる相対 TS 番号は無視され、常に物理 BS-23ch 内で送出中の TSID が 18803 の TS が選局される)
+                    ## 地上波や CS にはスロットや相対 TS 番号の概念がないため、TSID を指定する必要はない
                     extra_args = f'--tsid {ts_info.transport_stream_id}'
                 else:
-                    extra_args = ''
+                    # Mirakurun のプレースホルダーは単なる文字列置換で実装されているが、"satellite" が空だと条件分岐が成立せず
+                    # チューナーコマンド内の <satellite> が置換されずに残ってしまうため、意図的に空文字列ではなく半角スペースを入れている
+                    # ref: https://github.com/Chinachu/Mirakurun/blob/3.9.0-rc.4/src/Mirakurun/TunerDevice.ts#L271-L274
+                    extra_args = ' '
             channel: MirakurunChannel = {
                 'name': mirakurun_name,
                 'type': mirakurun_type,
@@ -447,8 +450,9 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
                 return f'recpt1 --device {tuner.device_path} <channel> - -'
             else:
                 # <satellite> は mirakc における {{{extra_args}}} の代わりとして使っている
-                # TSID 選局に対応しているチューナーでは、BS のみ <satellite> を --tsid (BS チャンネルの TSID) に置換する
-                if tuner.isTSIDSelectionSupported() is True:
+                # TSID 選局に対応している ISDB-S 対応チューナー・ISDB-T/ISDB-S 両対応チューナーでは、
+                # BS でのみ <satellite> が --tsid (BS チャンネルの TSID) に置換される
+                if tuner.isTSIDSelectionSupported() is True and tuner.type in ['ISDB-S', 'ISDB-T/ISDB-S']:
                     return f'recisdb tune --device {tuner.device_path} --channel <channel> <satellite> -'
                 else:
                     return f'recisdb tune --device {tuner.device_path} --channel <channel> -'
@@ -648,6 +652,9 @@ class MirakcConfigYmlFormatter(BaseFormatter):
                 if ts_info.broadcast_type == 'BS':
                     extra_args = f'--tsid {ts_info.transport_stream_id}'
                 else:
+                    # channel.extra-args のデフォルト値は空文字列なので、extra-args 自体の指定を省略しているのと同じ
+                    # mirakc は Mustache テンプレートを採用しているため、変換先が空文字列でも Mirakurun のようにプレースホルダーが残ることはない
+                    # ref: https://github.com/mirakc/mirakc/blob/main/docs/config.md
                     extra_args = ''
             channel: MirakcChannel = {
                 'name': mirakc_name,
@@ -662,8 +669,9 @@ class MirakcConfigYmlFormatter(BaseFormatter):
             if self._recpt1_compatible is True:
                 return f'recpt1 --device {tuner.device_path} ' + '{{{channel}}} - -'
             else:
-                # TSID 選局に対応しているチューナーでは、BS のみ <satellite> を --tsid (BS チャンネルの TSID) に置換する
-                if tuner.isTSIDSelectionSupported() is True:
+                # TSID 選局に対応している ISDB-S 対応チューナー・ISDB-T/ISDB-S 両対応チューナーでは、
+                # BS でのみ {{{extra_args}}} が --tsid (BS チャンネルの TSID) に置換される
+                if tuner.isTSIDSelectionSupported() is True and tuner.type in ['ISDB-S', 'ISDB-T/ISDB-S']:
                     return f'recisdb tune --device {tuner.device_path} --channel ' + '{{{channel}}} {{{extra_args}}} -'
                 else:
                     return f'recisdb tune --device {tuner.device_path} --channel ' + '{{{channel}}} -'
