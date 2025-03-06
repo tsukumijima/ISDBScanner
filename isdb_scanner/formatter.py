@@ -283,11 +283,17 @@ class EDCBChSet5TxtFormatter(BaseFormatter):
         return '\ufeff' + string_io.getvalue()
 
 
-class MirakurunChannel(TypedDict):
-    name: str
-    type: str
-    channel: str
-    isDisabled: NotRequired[bool]
+MirakurunChannel = TypedDict(
+    'MirakurunChannel',
+    {
+        'name': str,
+        'type': str,
+        'channel': str,
+        # 本来は SPHD 向けの受信衛星指定用パラメータだが、mirakc における extra-args の代わりに TSID 指定用のパラメータに転用している
+        'satellite': str,
+        'isDisabled': NotRequired[bool],
+    },
+)
 
 
 class MirakurunChannelsYmlFormatter(BaseFormatter):
@@ -350,13 +356,25 @@ class MirakurunChannelsYmlFormatter(BaseFormatter):
             if self._recpt1_compatible is True:
                 # recpt1 互換の物理チャンネル指定フォーマット
                 mirakurun_channel = ts_info.physical_channel_recpt1
+                # 追加の引数は常に設定しない
+                extra_args = ''
             else:
                 # recisdb 互換の物理チャンネル指定フォーマット
                 mirakurun_channel = ts_info.physical_channel_recisdb
+                ## BS のみ追加の引数として --tsid (BS チャンネルの TSID) を指定し、当該トランスポンダで送出中の TS を明示的に TSID で選局する
+                ## 実際に発行されるチューナーコマンドは --channel BS23_2 --tsid 18803 のようになる
+                ## (--tsid 指定時は物理チャンネル表記に含まれる相対 TS 番号は無視され、常に物理 BS-23ch 内で送出中の TSID が 18803 の TS が選局される)
+                ## 地上波や CS にはスロットや相対 TS 番号の概念がないため、TSID を指定する必要はない
+                if ts_info.broadcast_type == 'BS':
+                    extra_args = f'--tsid {ts_info.transport_stream_id}'
+                else:
+                    extra_args = ''
             channel: MirakurunChannel = {
                 'name': mirakurun_name,
                 'type': mirakurun_type,
                 'channel': mirakurun_channel,
+                # 本来は SPHD 向けの受信衛星指定用パラメータだが、mirakc における extra-args の代わりに TSID 指定用のパラメータに転用している
+                'satellite': extra_args,
                 'isDisabled': False,
             }
             mirakurun_channels.append(channel)
@@ -364,6 +382,7 @@ class MirakurunChannelsYmlFormatter(BaseFormatter):
         # YAML に変換
         string_io = StringIO()
         yaml = YAML()
+        yaml.width = 1000
         yaml.preserve_quotes = True
         yaml.indent(mapping=2, sequence=4, offset=2)
         yaml.dump(mirakurun_channels, string_io)
@@ -375,12 +394,16 @@ class MirakurunChannelsYmlFormatter(BaseFormatter):
         return string_io.getvalue()
 
 
-class MirakurunTuner(TypedDict):
-    name: str
-    types: list[str]
-    command: str
-    decoder: NotRequired[str]
-    isDisabled: NotRequired[bool]
+MirakurunTuner = TypedDict(
+    'MirakurunTuner',
+    {
+        'name': str,
+        'types': list[str],
+        'command': str,
+        'decoder': NotRequired[str],
+        'isDisabled': NotRequired[bool],
+    },
+)
 
 
 class MirakurunTunersYmlFormatter(BaseFormatter):
@@ -423,7 +446,9 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
             if self._recpt1_compatible is True:
                 return f'recpt1 --device {device_path} <channel> - -'
             else:
-                return f'recisdb tune --device {device_path} --channel <channel> -'
+                # <satellite> は mirakc における {{{extra_args}}} の代わりとして使っている
+                # TSID 選局に対応しているチューナーでは、BS のみ <satellite> が --tsid (BS チャンネルの TSID) に置換される
+                return f'recisdb tune --device {device_path} --channel <channel> <satellite> -'
 
         # Mirakurun のチューナー設定ファイル用のデータ構造に変換
         mirakurun_tuners: list[MirakurunTuner] = []
@@ -476,6 +501,7 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
         # YAML に変換
         string_io = StringIO()
         yaml = YAML()
+        yaml.width = 1000
         yaml.preserve_quotes = True
         yaml.indent(mapping=2, sequence=4, offset=2)
         yaml.dump(mirakurun_tuners, string_io)
@@ -487,18 +513,28 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
         return string_io.getvalue()
 
 
-class MirakcChannel(TypedDict):
-    name: str
-    type: str
-    channel: str
-    disabled: NotRequired[bool]
+MirakcChannel = TypedDict(
+    'MirakcChannel',
+    {
+        'name': str,
+        'type': str,
+        'channel': str,
+        'extra-args': str,
+        'disabled': NotRequired[bool],
+    },
+)
 
 
-class MirakcTuner(TypedDict):
-    name: str
-    types: list[str]
-    command: str  # mirakc には decoder の項目がなく、別途 config.yml の filters.decode-filter.command として指定する
-    disabled: NotRequired[bool]
+MirakcTuner = TypedDict(
+    'MirakcTuner',
+    {
+        'name': str,
+        'types': list[str],
+        # mirakc には decoder の項目がなく、別途 config.yml の filters.decode-filter.command として指定する
+        'command': str,
+        'disabled': NotRequired[bool],
+    },
+)
 
 
 class MirakcConfigYmlFormatter(BaseFormatter):
@@ -597,13 +633,24 @@ class MirakcConfigYmlFormatter(BaseFormatter):
             if self._recpt1_compatible is True:
                 # recpt1 互換の物理チャンネル指定フォーマット
                 mirakc_channel = ts_info.physical_channel_recpt1
+                # 追加の引数は常に設定しない
+                extra_args = ''
             else:
                 # recisdb 互換の物理チャンネル指定フォーマット
                 mirakc_channel = ts_info.physical_channel_recisdb
+                ## BS のみ追加の引数として --tsid (BS チャンネルの TSID) を指定し、当該トランスポンダで送出中の TS を明示的に TSID で選局する
+                ## 実際に発行されるチューナーコマンドは --channel BS23_2 --tsid 18803 のようになる
+                ## (--tsid 指定時は物理チャンネル表記に含まれる相対 TS 番号は無視され、常に物理 BS-23ch 内で送出中の TSID が 18803 の TS が選局される)
+                ## 地上波や CS にはスロットや相対 TS 番号の概念がないため、TSID を指定する必要はない
+                if ts_info.broadcast_type == 'BS':
+                    extra_args = f'--tsid {ts_info.transport_stream_id}'
+                else:
+                    extra_args = ''
             channel: MirakcChannel = {
                 'name': mirakc_name,
                 'type': mirakc_type,
                 'channel': mirakc_channel,
+                'extra-args': extra_args,
                 'disabled': False,
             }
             cast(list[MirakcChannel], mirakc_config['channels']).append(channel)
@@ -612,7 +659,8 @@ class MirakcConfigYmlFormatter(BaseFormatter):
             if self._recpt1_compatible is True:
                 return f'recpt1 --device {device_path} ' + '{{{channel}}} - -'
             else:
-                return f'recisdb tune --device {device_path} --channel ' + '{{{channel}}} -'
+                # TSID 選局に対応しているチューナーでは、BS のみ <satellite> が --tsid (BS チャンネルの TSID) に置換される
+                return f'recisdb tune --device {device_path} --channel ' + '{{{channel}}} {{{extra_args}}} -'
 
         # mirakc のチューナー設定ファイル用のデータ構造に変換
         for isdbt_tuner in self._isdbt_tuners:
@@ -652,6 +700,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
         # YAML に変換
         string_io = StringIO()
         yaml = YAML()
+        yaml.width = 1000
         yaml.preserve_quotes = True
         yaml.indent(mapping=2, sequence=4, offset=2)
         yaml.dump(mirakc_config, string_io)
