@@ -221,8 +221,16 @@ sudo chmod +x /usr/local/bin/isdb-scanner
 ISDBScanner は、引数で指定されたディレクトリ (デフォルト: `./scanned/`) 以下に複数のファイルを出力します。  
 出力される各ファイルのフォーマットは [対応出力フォーマット](#対応出力フォーマット) を参照してください。
 
+> [!IMPORTANT]
+> **重要: ISDBScanner v1.3.0 以降を recisdb + px4_drv 環境で使う場合は、[tsukumijima/px4_drv](https://github.com/tsukumijima/px4_drv) かつ v0.4.0 以降に更新する必要があります。**  
+> ISDBScanner v1.3.0 からは、px4_drv の chardev 版デバイスと全ての DVB 版デバイスで、**BS チャンネルを物理チャンネル番号（スロット番号・相対 TS 番号）ではなく、TSID (Transport Stream ID) で選局するように変更されました。**  
+> TSID で選局することで、2025年2月末の帯域再編のように放送局側が通知なしに相対 TS 番号を変更した場合でも、受信できなくなる問題を防げます。  
+> ただし、オリジナルの [nns779/px4_drv](https://github.com/nns779/px4_drv) は TSID での選局に対応していないため、**ISDBScanner が生成した設定ファイルを使うには、px4_drv をフォーク版である [tsukumijima/px4_drv](https://github.com/tsukumijima/px4_drv) に更新する必要があります。**  
+> なお、PT1/PT2/PT3 の chardev 版ドライバは TSID での選局に対応していないため、これらのチューナー向けには TSID 選局の設定は生成されません。  
+> また、[stz2012/recpt1](https://github.com/stz2012/recpt1) は TSID での選局に対応していないため、recpt1 向けの設定ファイルでは TSID での選局は行いません。
+
 > [!TIP]
-> ISDBScanner v1.2.0 以降では、`--lnb` オプションを指定すると、衛星放送受信時にチューナーからアンテナに給電できます（動作未確認）。  
+> **ISDBScanner v1.2.0 以降では、`--lnb` オプションを指定すると、衛星放送受信時にチューナーからアンテナに給電できます（動作未確認）。**  
 > `--lnb 11v` と `--lnb 15v` の両方を指定できますが、px4_drv 対応チューナーには `--lnb 15v` のみ指定できます。  
 > 明示的に LNB 給電を無効化するには、`--lnb low` を指定します。何も指定されなかったときは LNB 給電を行いません。
 
