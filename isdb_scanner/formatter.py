@@ -442,13 +442,16 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
             str: フォーマットされた文字列
         """
 
-        def get_tuner_command(device_path: Path) -> str:
+        def get_tuner_command(tuner: ISDBTuner) -> str:
             if self._recpt1_compatible is True:
-                return f'recpt1 --device {device_path} <channel> - -'
+                return f'recpt1 --device {tuner.device_path} <channel> - -'
             else:
                 # <satellite> は mirakc における {{{extra_args}}} の代わりとして使っている
-                # TSID 選局に対応しているチューナーでは、BS のみ <satellite> が --tsid (BS チャンネルの TSID) に置換される
-                return f'recisdb tune --device {device_path} --channel <channel> <satellite> -'
+                # TSID 選局に対応しているチューナーでは、BS のみ <satellite> を --tsid (BS チャンネルの TSID) に置換する
+                if tuner.isTSIDSelectionSupported() is True:
+                    return f'recisdb tune --device {tuner.device_path} --channel <channel> <satellite> -'
+                else:
+                    return f'recisdb tune --device {tuner.device_path} --channel <channel> -'
 
         # Mirakurun のチューナー設定ファイル用のデータ構造に変換
         mirakurun_tuners: list[MirakurunTuner] = []
@@ -459,7 +462,7 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
             tuner: MirakurunTuner = {
                 'name': isdbt_tuner.name,
                 'types': ['GR'],
-                'command': get_tuner_command(isdbt_tuner.device_path),
+                'command': get_tuner_command(isdbt_tuner),
             }
             if self._recpt1_compatible is True:
                 # recpt1 にも B25 デコード機能はあるが、安定性に難があるらしいので arib-b25-stream-test を使用する
@@ -474,7 +477,7 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
             tuner: MirakurunTuner = {
                 'name': isdbs_tuner.name,
                 'types': ['BS', 'CS'],
-                'command': get_tuner_command(isdbs_tuner.device_path),
+                'command': get_tuner_command(isdbs_tuner),
             }
             if self._recpt1_compatible is True:
                 # recpt1 にも B25 デコード機能はあるが、安定性に難があるらしいので arib-b25-stream-test を使用する
@@ -489,7 +492,7 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
             tuner: MirakurunTuner = {
                 'name': multi_tuner.name,
                 'types': ['GR', 'BS', 'CS'],
-                'command': get_tuner_command(multi_tuner.device_path),
+                'command': get_tuner_command(multi_tuner),
             }
             if self._recpt1_compatible is True:
                 # recpt1 にも B25 デコード機能はあるが、安定性に難があるらしいので arib-b25-stream-test を使用する
@@ -655,12 +658,15 @@ class MirakcConfigYmlFormatter(BaseFormatter):
             }
             cast(list[MirakcChannel], mirakc_config['channels']).append(channel)
 
-        def get_tuner_command(device_path: Path) -> str:
+        def get_tuner_command(tuner: ISDBTuner) -> str:
             if self._recpt1_compatible is True:
-                return f'recpt1 --device {device_path} ' + '{{{channel}}} - -'
+                return f'recpt1 --device {tuner.device_path} ' + '{{{channel}}} - -'
             else:
-                # TSID 選局に対応しているチューナーでは、BS のみ <satellite> が --tsid (BS チャンネルの TSID) に置換される
-                return f'recisdb tune --device {device_path} --channel ' + '{{{channel}}} {{{extra_args}}} -'
+                # TSID 選局に対応しているチューナーでは、BS のみ <satellite> を --tsid (BS チャンネルの TSID) に置換する
+                if tuner.isTSIDSelectionSupported() is True:
+                    return f'recisdb tune --device {tuner.device_path} --channel ' + '{{{channel}}} {{{extra_args}}} -'
+                else:
+                    return f'recisdb tune --device {tuner.device_path} --channel ' + '{{{channel}}} -'
 
         # mirakc のチューナー設定ファイル用のデータ構造に変換
         for isdbt_tuner in self._isdbt_tuners:
@@ -670,7 +676,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
             tuner: MirakcTuner = {
                 'name': isdbt_tuner.name,
                 'types': ['GR'],
-                'command': get_tuner_command(isdbt_tuner.device_path),
+                'command': get_tuner_command(isdbt_tuner),
                 'disabled': False,
             }
             cast(list[MirakcTuner], mirakc_config['tuners']).append(tuner)
@@ -681,7 +687,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
             tuner: MirakcTuner = {
                 'name': isdbs_tuner.name,
                 'types': ['BS', 'CS'],
-                'command': get_tuner_command(isdbs_tuner.device_path),
+                'command': get_tuner_command(isdbs_tuner),
                 'disabled': False,
             }
             cast(list[MirakcTuner], mirakc_config['tuners']).append(tuner)
@@ -692,7 +698,7 @@ class MirakcConfigYmlFormatter(BaseFormatter):
             tuner: MirakcTuner = {
                 'name': multi_tuner.name,
                 'types': ['GR', 'BS', 'CS'],
-                'command': get_tuner_command(multi_tuner.device_path),
+                'command': get_tuner_command(multi_tuner),
                 'disabled': False,
             }
             cast(list[MirakcTuner], mirakc_config['tuners']).append(tuner)

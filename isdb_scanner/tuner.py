@@ -244,6 +244,36 @@ class ISDBTuner:
         ## 現状すべて網羅しているつもりだが、念のため
         raise TunerNotSupportedError(f'Unsupported tuner device (Chardev): {self._device_path}')
 
+    def isTSIDSelectionSupported(self) -> bool:
+        """
+        BS チャンネルの TSID 選局に対応しているチューナーかどうかを返す
+
+        V4L-DVB デバイスは全て TSID 選局に対応している
+        Chardev デバイスでは、Earthsoft PT1/PT2/PT3 ドライバは TSID 選局に対応していないが、それ以外は対応している
+
+        Returns:
+            bool: BS チャンネルの TSID 選局に対応しているチューナーかどうか
+        """
+
+        # V4L-DVB デバイスは全て TSID 選局に対応している
+        if self._device_type == 'V4L-DVB':
+            return True
+
+        # Chardev デバイスでは、特定のドライバを除いてサポートされる
+        elif self._device_type == 'Chardev':
+            # Earthsoft PT1 / PT2 ドライバは TSID 選局に対応していない
+            if str(self._device_path).startswith('/dev/pt1video'):
+                return False
+            # Earthsoft PT3 ドライバは TSID 選局に対応していない
+            if str(self._device_path).startswith('/dev/pt3video'):
+                return False
+            # それ以外の Chardev デバイスは TSID 選局に対応している
+            ## 正確には tsukumijima/px4_drv でしか対応していない (本家 nns779/px4_drv は対応していない) が、
+            ## 本家は長らく更新が止まっており最新のカーネルにも対応していないので、大半が移行済みのはず…
+            return True
+
+        assert False  # 通常到達しない
+
     def isBusy(self) -> bool:
         """
         チューナーデバイスが使用中かどうかを取得する
