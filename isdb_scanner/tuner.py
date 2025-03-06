@@ -146,7 +146,11 @@ class ISDBTuner:
         # Earthsoft PT3
         if str(self._device_path).startswith('/dev/pt3video'):
             tuner_type, tuner_number = GetPT1PT3PX4VideoDeviceInfo()
-            return ('Chardev', tuner_type, f'Earthsoft PT3 ({self.tunerTypeToPretty(tuner_type)}) #{tuner_number}')
+            return (
+                'Chardev',
+                tuner_type,
+                f'Earthsoft PT3 ({self.tunerTypeToPretty(tuner_type)}) #{tuner_number}',
+            )
 
         # PLEX PX-W3U4/PX-Q3U4/PX-W3PE4/PX-Q3PE4/PX-W3PE5/PX-Q3PE5 (PX4/PX5 Series)
         if str(self._device_path).startswith('/dev/px4video'):
@@ -182,11 +186,19 @@ class ISDBTuner:
             ## 同一機種を複数接続している場合はチューナー名が重複するため、重複を削除
             tuner_name = ' / '.join(list(set(tuner_names)))
 
-            return ('Chardev', tuner_type, f'PLEX {tuner_name} ({self.tunerTypeToPretty(tuner_type)}) #{tuner_number}')
+            return (
+                'Chardev',
+                tuner_type,
+                f'PLEX {tuner_name} ({self.tunerTypeToPretty(tuner_type)}) #{tuner_number}',
+            )
 
         # PLEX PX-S1UR
         if str(self._device_path).startswith('/dev/pxs1urvideo'):
-            return ('Chardev', 'ISDB-T', f'PLEX PX-S1UR #{int(str(self._device_path).split("pxs1urvideo")[-1]) + 1}')
+            return (
+                'Chardev',
+                'ISDB-T',
+                f'PLEX PX-S1UR #{int(str(self._device_path).split("pxs1urvideo")[-1]) + 1}',
+            )
 
         # PLEX PX-M1UR
         if str(self._device_path).startswith('/dev/pxm1urvideo'):

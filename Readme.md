@@ -50,7 +50,7 @@ BS・CS では、**BS・CS1・CS2 ごとに1つの物理チャンネルのみを
 [px4_drv](https://github.com/tsukumijima/px4_drv) / [smsusb (Linux カーネル標準ドライバ)](https://github.com/torvalds/linux/tree/master/drivers/media/usb/siano) 対応チューナー以外での動作は検証していませんが、おそらく動作すると思います。
 
 > [!IMPORTANT]  
-> **DVB 版ドライバを利用するには、ISDBScanner v1.1.0 / [recisdb](https://github.com/kazuki0824/recisdb-rs) v1.2.2 以降が必要です。**  
+> **DVB 版ドライバを利用するには、ISDBScanner v1.1.0 / [recisdb](https://github.com/kazuki0824/recisdb-rs) v1.2.0 以降が必要です。**  
 > recisdb v1.2.0 以前のバージョンは DVB 版ドライバの操作に対応していません。
 
 ### chardev 版ドライバ
@@ -183,20 +183,20 @@ ISDBScanner は、チューナー受信コマンドとして [recisdb](https://g
 > さらに recpt1 と異なり BS の物理チャンネルがハードコードされていないため、**将来 BS 帯域再編 (トランスポンダ/スロット移動) が行われた際も、recisdb を更新することなく ISDBScanner でのチャンネルスキャンと各設定ファイルの更新だけで対応できます。**
 
 以下の手順で、recisdb をインストールしてください。  
-下記は recisdb v1.2.2 時点でのインストール手順です。 
+下記は recisdb v1.2.3 時点でのインストール手順です。 
 
 ```bash
 # Deb パッケージは Ubuntu 20.04 LTS / Debian 11 以降に対応
 
 # x86_64 環境
-wget https://github.com/kazuki0824/recisdb-rs/releases/download/1.2.2/recisdb_1.2.2-1_amd64.deb
-sudo apt install ./recisdb_1.2.2-1_amd64.deb
-rm ./recisdb_1.2.2-1_amd64.deb
+wget https://github.com/kazuki0824/recisdb-rs/releases/download/1.2.3/recisdb_1.2.3-1_amd64.deb
+sudo apt install ./recisdb_1.2.3-1_amd64.deb
+rm ./recisdb_1.2.3-1_amd64.deb
 
 # arm64 環境
-wget https://github.com/kazuki0824/recisdb-rs/releases/download/1.2.2/recisdb_1.2.2-1_arm64.deb
-sudo apt install ./recisdb_1.2.2-1_arm64.deb
-rm ./recisdb_1.2.2-1_arm64.deb
+wget https://github.com/kazuki0824/recisdb-rs/releases/download/1.2.3/recisdb_1.2.3-1_arm64.deb
+sudo apt install ./recisdb_1.2.3-1_arm64.deb
+rm ./recisdb_1.2.3-1_arm64.deb
 ```
 > [!NOTE]  
 > アンインストールは `sudo apt remove recisdb` で行えます。
