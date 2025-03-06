@@ -38,7 +38,7 @@ jobs:
           poetry run pyinstaller --onefile --collect-submodules shellingham --name=isdb-scanner isdb_scanner/__main__.py
 
       - name: Upload Executable as Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: isdb-scanner
           path: dist/isdb-scanner
@@ -48,7 +48,7 @@ jobs:
           poetry build
 
       - name: Upload Wheel as Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: isdb-scanner-wheel
           path: dist/isdb_scanner-*.whl
@@ -109,7 +109,7 @@ jobs:
             'poetry install && poetry run pyinstaller --onefile --collect-submodules shellingham --name=isdb-scanner-arm isdb_scanner/__main__.py'
 
       - name: Upload Executable as Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: isdb-scanner-arm
           path: dist/isdb-scanner-arm
@@ -126,19 +126,19 @@ jobs:
     steps:
 
       - name: Download Artifact (x86_64)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: isdb-scanner
           path: dist
 
       - name: Download Artifact (arm64)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: isdb-scanner-arm
           path: dist
 
       - name: Download Artifact (wheel)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: isdb-scanner-wheel
           path: dist
