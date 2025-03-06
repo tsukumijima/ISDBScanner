@@ -136,8 +136,10 @@ class TransportStreamAnalyzer(TransportStreamFile):
             ## ここでは、相対 TS 番号が 0 スタートになるよう、適切に相対 TS 番号を振り直すこととする
             ## 同じトランスポンダ (中継器) の中にかつて TS0, TS1, TS2, TS3 が放送されていたと仮定した際、下記の通り振る舞う
             ## 1. 再編や閉局で TS0, TS1 が消滅した場合、消滅した分の相対 TS 番号分、旧 TS2, TS3 をそれぞれ TS0, TS1 に相対 TS 番号をずらす
-            ## 2. 再編や閉局で TS2 が消滅した場合、物理的には TS2 は残存している (ヌルパケットが送られている) ため、相対 TS 番号の振り直しは行わない
-            ## 3. 再編や閉局で TS0, TS2 が消滅した場合、旧 TS1 を TS0 に、旧 TS3 を TS2 とする (旧 TS2 、現在 TS1 は物理的にはまだ存在しているため残す)
+            ## 2. 再編や閉局で TS0, TS2 が消滅した場合、旧 TS1 を TS0 に、旧 TS3 を TS1 に相対 TS 番号をずらす
+            ## 以前は『再編や閉局で TS2 が消滅した場合、物理的には TS2 は残存している (ヌルパケットが送られている) ため、相対 TS 番号の振り直しは行わない』挙動だったが、
+            ## 2025年2月末の帯域再編で閉局した空き帯域の相対 TS 番号が一斉に詰められた関係で齟齬が出たため、現在は上記挙動に変更している
+            ## （本来はこのように厳密に一意に定まらない相対 TS 番号ではなく、TSID を指定して選局すべき）
             # 同じトランスポンダ (中継器) を持つ TS ごとにグループ化
             bs_groups: defaultdict[int, list[TransportStreamInfo]] = defaultdict(list)
             for ts_info in ts_infos.values():
@@ -148,6 +150,7 @@ class TransportStreamAnalyzer(TransportStreamFile):
                 bs_group.sort(key=lambda ts_info: ts_info.satellite_slot_number or -1)
                 slot_numbers = [ts_info.satellite_slot_number for ts_info in bs_group if ts_info.satellite_slot_number is not None]
                 new_slot_numbers: list[int] = []
+                """
                 # 相対 TS 番号を適切に詰める
                 if 0 not in slot_numbers:
                     # 0 が存在しない場合のみ、他の相対 TS 番号を前にずらす
@@ -156,6 +159,13 @@ class TransportStreamAnalyzer(TransportStreamFile):
                 else:
                     # 0 が存在する場合は変更しない
                     new_slot_numbers = slot_numbers
+                """
+                # 相対 TS 番号を0スタートの連番になるように振り直す
+                # 例: [0,1,3,5] → [0,1,2,3], [1,3,5] → [0,1,2]
+                new_slot_numbers = []
+                sorted_slots = sorted(slot_numbers)
+                for i, _ in enumerate(sorted_slots):
+                    new_slot_numbers.append(i)
                 # 新しいスロット番号を割り当てる
                 for ts_info, new_slot in zip(bs_group, new_slot_numbers):
                     ts_info.satellite_slot_number = new_slot
