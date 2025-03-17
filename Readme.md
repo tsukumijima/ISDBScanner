@@ -202,15 +202,15 @@ rm ./recisdb_1.2.3-1_arm64.deb
 > アンインストールは `sudo apt remove recisdb` で行えます。
 
 ISDBScanner 自体は Python スクリプトですが、Python 3.11 がインストールされていない環境でも動かせるよう、PyInstaller でシングルバイナリ化した実行ファイルを公開しています。  
-下記は ISDBScanner v1.3.0 時点でのインストール手順です。
+下記は ISDBScanner v1.3.1 時点でのインストール手順です。
 
 ```bash
 # x86_64 環境
-sudo wget https://github.com/tsukumijima/ISDBScanner/releases/download/v1.3.0/isdb-scanner -O /usr/local/bin/isdb-scanner
+sudo wget https://github.com/tsukumijima/ISDBScanner/releases/download/v1.3.1/isdb-scanner -O /usr/local/bin/isdb-scanner
 sudo chmod +x /usr/local/bin/isdb-scanner
 
 # arm64 環境
-sudo wget https://github.com/tsukumijima/ISDBScanner/releases/download/v1.3.0/isdb-scanner-arm -O /usr/local/bin/isdb-scanner
+sudo wget https://github.com/tsukumijima/ISDBScanner/releases/download/v1.3.1/isdb-scanner-arm -O /usr/local/bin/isdb-scanner
 sudo chmod +x /usr/local/bin/isdb-scanner
 ```
 
@@ -222,8 +222,8 @@ ISDBScanner は、引数で指定されたディレクトリ (デフォルト: `
 出力される各ファイルのフォーマットは [対応出力フォーマット](#対応出力フォーマット) を参照してください。
 
 > [!IMPORTANT]
-> **重要: ISDBScanner v1.3.0 以降を recisdb + px4_drv 環境で使う場合は、[tsukumijima/px4_drv](https://github.com/tsukumijima/px4_drv) かつ v0.4.0 以降に更新する必要があります。**  
-> ISDBScanner v1.3.0 からは、px4_drv の chardev 版デバイスと全ての DVB 版デバイスで、**BS チャンネルを物理チャンネル番号（スロット番号・相対 TS 番号）ではなく、TSID (Transport Stream ID) で選局するように変更されました。**  
+> **重要: ISDBScanner v1.3.1 以降を recisdb + px4_drv 環境で使う場合は、[tsukumijima/px4_drv](https://github.com/tsukumijima/px4_drv) かつ v0.4.0 以降に更新する必要があります。**  
+> ISDBScanner v1.3.1 からは、px4_drv の chardev 版デバイスと全ての DVB 版デバイスで、**BS チャンネルを物理チャンネル番号（スロット番号・相対 TS 番号）ではなく、TSID (Transport Stream ID) で選局するように変更されました。**  
 > TSID で選局することで、2025年2月末の帯域再編のように放送局側が通知なしに相対 TS 番号を変更した場合でも、受信できなくなる問題を防げます。  
 > ただし、オリジナルの [nns779/px4_drv](https://github.com/nns779/px4_drv) は TSID での選局に対応していないため、**ISDBScanner が生成した設定ファイルを使うには、px4_drv をフォーク版である [tsukumijima/px4_drv](https://github.com/tsukumijima/px4_drv) に更新する必要があります。**  
 > なお、PT1/PT2/PT3 の chardev 版ドライバは TSID での選局に対応していないため、これらのチューナー向けには TSID 選局の設定は生成されません。  
