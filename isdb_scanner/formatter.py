@@ -366,7 +366,7 @@ class MirakurunChannelsYmlFormatter(BaseFormatter):
                     ## 実際に発行されるチューナーコマンドは --channel BS23_2 --tsid 18803 のようになる
                     ## (--tsid 指定時は物理チャンネル表記に含まれる相対 TS 番号は無視され、常に物理 BS-23ch 内で送出中の TSID が 18803 の TS が選局される)
                     ## 地上波や CS にはスロットや相対 TS 番号の概念がないため、TSID を指定する必要はない
-                    extra_args = f'--tsid {ts_info.transport_stream_id}'
+                    extra_args = f' --tsid {ts_info.transport_stream_id} '  # 意図的に先頭と末尾に半角スペースを入れている
                 else:
                     # Mirakurun のプレースホルダーは単なる文字列置換で実装されているが、"satellite" が空だと条件分岐が成立せず
                     # チューナーコマンド内の <satellite> が置換されずに残ってしまうため、意図的に空文字列ではなく半角スペースを入れている
@@ -453,7 +453,12 @@ class MirakurunTunersYmlFormatter(BaseFormatter):
                 # TSID 選局に対応している ISDB-S 対応チューナー・ISDB-T/ISDB-S 両対応チューナーでは、
                 # BS でのみ <satellite> が --tsid (BS チャンネルの TSID) に置換される
                 if tuner.isTSIDSelectionSupported() is True and tuner.type in ['ISDB-S', 'ISDB-T/ISDB-S']:
-                    return f'recisdb tune --device {tuner.device_path} --channel <channel> <satellite> -'
+                    # Mirakurun のプレースホルダーは単なる文字列置換で実装されているが、"satellite" が空だと条件分岐が成立せず
+                    # チューナーコマンド内の <satellite> が置換されずに残ってしまうため、地上波や CS の場合は空文字列ではなく半角スペースを入れている
+                    # しかし生成されたチューナーコマンドに複数の連続するスペースが含まれるとコマンド実行に失敗するため、
+                    # "<channel>", "<satellite>", "-" (標準出力を表す) の間には敢えて半角スペースを入れないようにしている
+                    # ref: https://github.com/tsukumijima/ISDBScanner/issues/9
+                    return f'recisdb tune --device {tuner.device_path} --channel <channel><satellite>-'
                 else:
                     return f'recisdb tune --device {tuner.device_path} --channel <channel> -'
 
