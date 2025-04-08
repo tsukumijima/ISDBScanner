@@ -6,6 +6,10 @@ authors = ["tsukumi <tsukumijima@users.noreply.github.com>"]
 license = "MIT"
 readme = "Readme.md"
 
+[tool.taskipy.tasks]
+lint = "ruff check --fix ."
+format = "ruff format ."
+
 [tool.poetry.dependencies]
 python = ">=3.11,<3.13"
 ariblib = {url = "https://github.com/tsukumijima/ariblib/releases/download/v0.1.4/ariblib-0.1.4-py3-none-any.whl"}
@@ -20,6 +24,7 @@ typing-extensions = ">=4.7.1"
 [tool.poetry.group.dev.dependencies]
 pyinstaller = ">=5.13.2"
 ruff = ">=0.9.1"
+taskipy = "^1.14.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -34,8 +39,8 @@ indent-width = 4
 target-version = "py311"
 
 [tool.ruff.lint]
-# flake8, pycodestyle, Ruff 固有のルールを使う
-select = ["F", "E", "W", "RUF"]
+# flake8, pycodestyle, pyupgrade, isort, Ruff 固有のルールを使う
+select = ["F", "E", "W", "UP", "I", "RUF", "TID251"]
 ignore = [
     "E501",    # 1行の長さを超えている場合の警告を抑制
     "E731",    # Do not assign a `lambda` expression, use a `def` を抑制
@@ -48,6 +53,11 @@ ignore = [
 [tool.ruff.lint.isort]
 # インポートブロックの後に2行空ける
 lines-after-imports = 2
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+# Python 3.11 + Pydantic で TypedDict を扱う際は、typing_extensions.TypedDict を使う必要がある
+# ref: https://github.com/langchain-ai/langgraph/pull/2910
+"typing.TypedDict".msg = "Use typing_extensions.TypedDict instead."
 
 [tool.ruff.format]
 # シングルクオートを使う

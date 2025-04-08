@@ -1,12 +1,14 @@
+# ruff: noqa: UP013
+
 import copy
 import csv
 import json
 from io import StringIO
 from pathlib import Path
-from typing import Any, TypedDict, cast
+from typing import Any, NotRequired, cast
 
 from ruamel.yaml import YAML
-from typing_extensions import NotRequired
+from typing_extensions import TypedDict
 
 from isdb_scanner.constants import TransportStreamInfo, TransportStreamInfoList
 from isdb_scanner.tuner import ISDBTuner
