@@ -1,4 +1,3 @@
-
 name: Build
 
 on:
@@ -9,68 +8,30 @@ on:
 jobs:
 
   build-linux:
-    runs-on: ubuntu-24.04
-    container:
-      image: ubuntu:20.04
+    strategy:
+      fail-fast: false  # 一つのビルドが失敗しても他のビルドは継続する
+      matrix:
+        include:
+          # x64 アーキテクチャ向けのビルド設定
+          - arch: amd64
+            runner: ubuntu-22.04
+            artifact_suffix: ''
+          # arm64 アーキテクチャ向けのビルド設定
+          - arch: arm64
+            runner: ubuntu-22.04-arm
+            artifact_suffix: '-arm'
+    runs-on: ${{ matrix.runner }}
     steps:
 
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Install and configure Poetry
-        uses: snok/install-poetry@v1
-        with:
-          version: 1.8.5
-          virtualenvs-in-project: true
-
-      - name: Setup Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          cache: 'poetry'
-          cache-dependency-path: '${{ github.workspace }}/poetry.lock'
-
-      - name: Install Dependencies
-        run: |
-          pip install poetry
-          poetry install
-
-      - name: Build with PyInstaller
-        run: |
-          poetry run pyinstaller --onefile --collect-submodules shellingham --name=isdb-scanner isdb_scanner/__main__.py
-
-      - name: Upload Executable as Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: isdb-scanner
-          path: dist/isdb-scanner
-
-      - name: Build Wheel
-        run: |
-          poetry build
-
-      - name: Upload Wheel as Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: isdb-scanner-wheel
-          path: dist/isdb_scanner-*.whl
-
-  build-linux-arm:
-    runs-on: ubuntu-24.04
-    steps:
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: linux/arm64
-
+      # Docker Buildx のセットアップ
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
+      # Dockerfile を作成
       - name: Create Dockerfile
         run: |
           cat <<EOF > Dockerfile
-          FROM arm64v8/ubuntu:20.04
+          FROM ubuntu:20.04
           ENV DEBIAN_FRONTEND=noninteractive
           RUN apt-get update && \
               apt-get install -y --no-install-recommends software-properties-common && \
@@ -89,64 +50,89 @@ jobs:
           RUN python3.11 -m pip install poetry
           EOF
 
+      # Ubuntu 20.04 の Docker イメージをビルド
       - name: Build Docker Image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/arm64
-          tags: arm64v8/ubuntu:build
-          cache-from: type=gha,scope=arm64v8/ubuntu
-          cache-to: type=gha,scope=arm64v8/ubuntu,mode=max
+          tags: ubuntu:20.04-custom
+          cache-from: type=gha,scope=ubuntu:20.04-custom(${{ matrix.arch }})
+          cache-to: type=gha,scope=ubuntu:20.04-custom(${{ matrix.arch }}),mode=max
           load: true
 
+      # Dockerfile を削除
       - name: Remove Dockerfile
         run: rm Dockerfile
 
+      # ISDBScanner のソースコードをチェックアウト
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
+      # ISDBScanner を PyInstaller でビルド
+      # arm64 ビルドではリリースでの区別のため、ファイル名を isdb-scanner-arm に変更する
       - name: Build with PyInstaller
         run: |
-          docker run --rm -i -v $(pwd):/work -w /work arm64v8/ubuntu:build bash -c \
-            'poetry install && poetry run pyinstaller --onefile --collect-submodules shellingham --name=isdb-scanner-arm isdb_scanner/__main__.py'
+          docker run --rm -i -v $(pwd):/work -w /work ubuntu:20.04-custom bash -c \
+            'poetry install && poetry run pyinstaller --onefile --collect-submodules shellingham --name=isdb-scanner${{ matrix.artifact_suffix }} isdb_scanner/__main__.py'
 
+      # 単一実行ファイルにビルドされたバイナリを Artifact としてアップロード
       - name: Upload Executable as Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: isdb-scanner-arm
-          path: dist/isdb-scanner-arm
+          name: isdb-scanner${{ matrix.artifact_suffix }}
+          path: dist/isdb-scanner${{ matrix.artifact_suffix }}
 
-  # build-linux と build-linux-arm のジョブが完了し、かつタグが push されたときのみ実行
+      # Wheel をビルド
+      # ISDBScanner 自体は Pure Python パッケージなので、重複回避のため x64 版のみ実行
+      - name: Build Wheel
+        if: matrix.arch == 'amd64'
+        run: |
+          docker run --rm -i -v $(pwd):/work -w /work ubuntu:20.04-custom bash -c \
+            'poetry build'
+
+      # Wheel を Artifact としてアップロード
+      # ISDBScanner 自体は Pure Python パッケージなので、重複回避のため x64 版のみ実行
+      - name: Upload Wheel as Artifact
+        if: matrix.arch == 'amd64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: isdb-scanner-wheel
+          path: dist/isdb_scanner-*.whl
+
+  # タグが push されたときのみ実行
   release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     needs:
       - build-linux
-      - build-linux-arm
     permissions:
       contents: write
     steps:
 
+      # Artifact をダウンロード (x86_64)
       - name: Download Artifact (x86_64)
         uses: actions/download-artifact@v4
         with:
           name: isdb-scanner
           path: dist
 
+      # Artifact をダウンロード (arm64)
       - name: Download Artifact (arm64)
         uses: actions/download-artifact@v4
         with:
           name: isdb-scanner-arm
           path: dist
 
+      # Artifact をダウンロード (wheel)
       - name: Download Artifact (wheel)
         uses: actions/download-artifact@v4
         with:
           name: isdb-scanner-wheel
           path: dist
 
+      # リリースを作成
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           files: |
