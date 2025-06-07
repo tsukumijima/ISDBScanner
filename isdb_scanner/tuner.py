@@ -240,6 +240,14 @@ class ISDBTuner:
                 f'e-better DTV02A-1T1S-U #{int(str(self._device_path).split("isdb2056video")[-1]) + 1}',
             )
 
+        # e-better DTV03A-1TU
+        if str(self._device_path).startswith('/dev/isdbt2071video'):
+            return (
+                'Chardev',
+                'ISDB-T',
+                f'e-better DTV03A-1TU #{int(str(self._device_path).split("isdbt2071video")[-1]) + 1}',
+            )
+
         # 対応していない (定義されていない) chardev 版チューナーの場合は TunerNotSupportedError を送出
         ## 現状すべて網羅しているつもりだが、念のため
         raise TunerNotSupportedError(f'Unsupported tuner device (Chardev): {self._device_path}')

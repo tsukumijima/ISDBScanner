@@ -56,18 +56,19 @@ BS・CS では、**BS・CS1・CS2 ごとに1つの物理チャンネルのみを
 ### chardev 版ドライバ
 
 - [px4_drv](https://github.com/tsukumijima/px4_drv)
-  - PX-W3U4
-  - PX-Q3U4
-  - PX-W3PE4
-  - PX-Q3PE4
-  - PX-W3PE5
-  - PX-Q3PE5
-  - PX-MLT5PE
-  - PX-MLT8PE
-  - PX-M1UR
-  - PX-S1UR
-  - DTV02A-1T1S-U
-  - DTV02A-4TS-P
+  - PLEX PX-W3U4
+  - PLEX PX-Q3U4
+  - PLEX PX-W3PE4
+  - PLEX PX-Q3PE4
+  - PLEX PX-W3PE5
+  - PLEX PX-Q3PE5
+  - PLEX PX-MLT5PE
+  - PLEX PX-MLT8PE
+  - PLEX PX-M1UR
+  - PLEX PX-S1UR
+  - e-better DTV02A-1T1S-U
+  - e-better DTV02A-4TS-P
+  - e-better DTV03A-1TU
 - [pt1_drv](https://github.com/stz2012/recpt1/tree/master/driver)
   - Earthsoft PT1
   - Earthsoft PT2
