@@ -1,4 +1,4 @@
-import subprocess
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -56,7 +56,7 @@ def main(
     )
 
     # recisdb の実行ファイルがインストールされているか確認
-    if subprocess.run(['/bin/bash', '-c', 'type recisdb'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
+    if shutil.which('recisdb') is None:
         print('[red]recisdb not found.[/red]')
         print('[red]Please install recisdb and try again.[/red]')
         print(Rule(characters='=', style=Style(color='#E33157')))
