@@ -203,15 +203,15 @@ rm ./recisdb_1.2.3-1_arm64.deb
 > アンインストールは `sudo apt remove recisdb` で行えます。
 
 ISDBScanner 自体は Python スクリプトですが、Python 3.11 がインストールされていない環境でも動かせるよう、PyInstaller でシングルバイナリ化した実行ファイルを公開しています。  
-下記は ISDBScanner v1.3.2 時点でのインストール手順です。
+下記は ISDBScanner v1.3.3 時点でのインストール手順です。
 
 ```bash
 # x86_64 環境
-sudo wget https://github.com/tsukumijima/ISDBScanner/releases/download/v1.3.2/isdb-scanner -O /usr/local/bin/isdb-scanner
+sudo wget https://github.com/tsukumijima/ISDBScanner/releases/download/v1.3.3/isdb-scanner -O /usr/local/bin/isdb-scanner
 sudo chmod +x /usr/local/bin/isdb-scanner
 
 # arm64 環境
-sudo wget https://github.com/tsukumijima/ISDBScanner/releases/download/v1.3.2/isdb-scanner-arm -O /usr/local/bin/isdb-scanner
+sudo wget https://github.com/tsukumijima/ISDBScanner/releases/download/v1.3.3/isdb-scanner-arm -O /usr/local/bin/isdb-scanner
 sudo chmod +x /usr/local/bin/isdb-scanner
 ```
 
